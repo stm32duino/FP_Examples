@@ -18,6 +18,7 @@ a swipe movement respectively from left to right and from right to left.
 * MemsMotorControl_IKS01A2_IHM02A1: This application provides a simple example of usage of a NUCLEO board (it was tested with NUCLEO-F401RE) 
 with X-NUCLEO-IKS01A2 and X-NUCLEO-IHM02A1 Expansion Boards. The application allows to run a motor clockwise or counter-clockwise rotating the 
 stack of boards accordingly; the speed of motor increases when the angle of rotation increases as well. 
+* BleSensors_SensiBLE: This application provides an example of usage of a SensiBLE board. The application uses BLE along with environmental and motion sensors (humidity, temperature, pressure, accelerometer, gyroscope). The user can connect an Android or IOS device with BlueNRG application to SensiBLE and see sensors data. The data are also printed to the serial port.
 
 
 ## Dependencies
@@ -33,6 +34,9 @@ The FP_Examples library requires the following STM32duino libraries:
 * STM32duino X-NUCLEO-53L0A1: https://github.com/stm32duino/X-NUCLEO-53L0A1
 * STM32duino X-NUCLEO-IHM02A1: https://github.com/stm32duino/X-NUCLEO-IHM02A1
 * STM32duino X-NUCLEO-LED61A1: https://github.com/stm32duino/X-NUCLEO-LED61A1
+* STM32duino HTS221: https://github.com/stm32duino/HTS221
+* STM32duino LPS25HB: https://github.com/stm32duino/LPS25HB
+* STM32duino LSM6DS3: https://github.com/stm32duino/LSM6DS3
 
 
 ## Documentation
@@ -47,6 +51,9 @@ https://github.com/stm32duino/X-NUCLEO-6180XA1
 https://github.com/stm32duino/X-NUCLEO-53L0A1
 https://github.com/stm32duino/X-NUCLEO-IHM02A1
 https://github.com/stm32duino/X-NUCLEO-LED61A1
+https://github.com/stm32duino/HTS221
+https://github.com/stm32duino/LPS25HB
+https://github.com/stm32duino/LSM6DS3
 
 The datasheets of the several components are available at  
 http://www.st.com/content/st_com/en/products/mems-and-sensors/inemo-inertial-modules/lsm6dsl.html
@@ -55,6 +62,9 @@ http://www.st.com/content/st_com/en/products/imaging-and-photonics-solutions/pro
 http://www.st.com/content/st_com/en/products/wireless-connectivity/bluetooth-bluetooth-low-energy/spbtle-rf.html
 http://www.st.com/content/st_com/en/products/motor-drivers/stepper-motor-drivers/l6470.html
 http://www.st.com/content/st_com/en/products/power-management/led-drivers/boost-current-regulators-for-led/led6001.html
+http://www.st.com/content/st_com/en/products/mems-and-sensors/humidity-sensors/hts221.html
+http://www.st.com/content/st_com/en/products/mems-and-sensors/pressure-sensors/lps25hb.html
+http://www.st.com/content/st_com/en/products/mems-and-sensors/inemo-inertial-modules/lsm6ds3.html
 
 
 
