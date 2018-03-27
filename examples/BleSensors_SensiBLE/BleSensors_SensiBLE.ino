@@ -28,14 +28,14 @@
 #include <HTS221Sensor.h>
 #include <LPS25HBSensor.h>
 
-#define PIN_LED_GRN    (13)
-#define PIN_SPI_MOSI   (11)
-#define PIN_SPI_MISO   (12)
-#define PIN_SPI_SCK    (3)
+#define PIN_SENSIBLE_LED_GRN    (13)
+#define PIN_BLE_SPI_MOSI   (11)
+#define PIN_BLE_SPI_MISO   (12)
+#define PIN_BLE_SPI_SCK    (3)
 
-#define PIN_SPI_nCS    (A1)
-#define PIN_SPI_RESET  (7)
-#define PIN_SPI_IRQ    (A0)
+#define PIN_BLE_SPI_nCS    (A1)
+#define PIN_BLE_SPI_RESET  (7)
+#define PIN_BLE_SPI_IRQ    (A0)
 
 #define PIN_BLE_LED    (0xFF)
 
@@ -43,10 +43,10 @@
 #define DEV_I2C     Wire
 
 // Configure BTLE_SPI
-SPIClass BTLE_SPI(PIN_SPI_MOSI, PIN_SPI_MISO, PIN_SPI_SCK);
+SPIClass BTLE_SPI(PIN_BLE_SPI_MOSI, PIN_BLE_SPI_MISO, PIN_BLE_SPI_SCK);
 
 // Configure BTLE pins
-SPBTLERFClass BTLE(&BTLE_SPI, PIN_SPI_nCS, PIN_SPI_IRQ, PIN_SPI_RESET, PIN_BLE_LED);
+SPBTLERFClass BTLE(&BTLE_SPI, PIN_BLE_SPI_nCS, PIN_BLE_SPI_IRQ, PIN_BLE_SPI_RESET, PIN_BLE_LED);
 
 const char *name = "BlueNRG";
 uint8_t SERVER_BDADDR[] = {0x12, 0x34, 0x00, 0xE1, 0x80, 0x03};
@@ -72,7 +72,7 @@ uint32_t printSkipCnt = 0;
 void setup() {
   int ret;
 
-  pinMode(PIN_LED_GRN, OUTPUT);
+  pinMode(PIN_SENSIBLE_LED_GRN, OUTPUT);
 
   SerialPort.begin(115200);
 
@@ -238,9 +238,9 @@ void Led_Blink()
     if(millis() - prevLedMsec > 1000)
     {
       prevLedMsec = millis();
-      digitalWrite(PIN_LED_GRN, HIGH);
+      digitalWrite(PIN_SENSIBLE_LED_GRN, HIGH);
       delay(10);
-      digitalWrite(PIN_LED_GRN, LOW);
+      digitalWrite(PIN_SENSIBLE_LED_GRN, LOW);
     }
   }
   else
@@ -248,9 +248,9 @@ void Led_Blink()
     if(millis() - prevLedMsec > 300)
     {
       prevLedMsec = millis();
-      digitalWrite(PIN_LED_GRN, HIGH);
+      digitalWrite(PIN_SENSIBLE_LED_GRN, HIGH);
       delay(10);
-      digitalWrite(PIN_LED_GRN, LOW);
+      digitalWrite(PIN_SENSIBLE_LED_GRN, LOW);
     }
   }
 }
