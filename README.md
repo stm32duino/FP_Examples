@@ -23,7 +23,7 @@ stack of boards accordingly; the speed of motor increases when the angle of rota
 
 ## Dependencies
 
-The FP_Examples library requires the following STM32duino libraries:
+The FP_Examples library requires the following STM32duino libraries (link to the source files):
 
 * STM32duino LSM6DSL: https://github.com/stm32duino/LSM6DSL
 * STM32duino Proximity_Gesture: https://github.com/stm32duino/Proximity_Gesture
@@ -41,30 +41,16 @@ The FP_Examples library requires the following STM32duino libraries:
 
 ## Documentation
 
-You can find the source files at  
-https://github.com/stm32duino/LSM6DSL
-https://github.com/stm32duino/Proximity_Gesture
-https://github.com/stm32duino/VL6180X
-https://github.com/stm32duino/VL53L0X
-https://github.com/stm32duino/SPBTLE-RF
-https://github.com/stm32duino/X-NUCLEO-6180XA1
-https://github.com/stm32duino/X-NUCLEO-53L0A1
-https://github.com/stm32duino/X-NUCLEO-IHM02A1
-https://github.com/stm32duino/X-NUCLEO-LED61A1
-https://github.com/stm32duino/HTS221
-https://github.com/stm32duino/LPS25HB
-https://github.com/stm32duino/LSM6DS3
-
 The datasheets of the several components are available at  
-http://www.st.com/content/st_com/en/products/mems-and-sensors/inemo-inertial-modules/lsm6dsl.html
-http://www.st.com/content/st_com/en/products/imaging-and-photonics-solutions/proximity-sensors/vl6180x.html
-http://www.st.com/content/st_com/en/products/imaging-and-photonics-solutions/proximity-sensors/vl53l0x.html
-http://www.st.com/content/st_com/en/products/wireless-connectivity/bluetooth-bluetooth-low-energy/spbtle-rf.html
-http://www.st.com/content/st_com/en/products/motor-drivers/stepper-motor-drivers/l6470.html
-http://www.st.com/content/st_com/en/products/power-management/led-drivers/boost-current-regulators-for-led/led6001.html
-http://www.st.com/content/st_com/en/products/mems-and-sensors/humidity-sensors/hts221.html
-http://www.st.com/content/st_com/en/products/mems-and-sensors/pressure-sensors/lps25hb.html
-http://www.st.com/content/st_com/en/products/mems-and-sensors/inemo-inertial-modules/lsm6ds3.html
+ * http://www.st.com/content/st_com/en/products/mems-and-sensors/inemo-inertial-modules/lsm6dsl.html
+ * http://www.st.com/content/st_com/en/products/imaging-and-photonics-solutions/proximity-sensors/vl6180x.html
+ * http://www.st.com/content/st_com/en/products/imaging-and-photonics-solutions/proximity-sensors/vl53l0x.html
+ * http://www.st.com/content/st_com/en/products/wireless-connectivity/bluetooth-bluetooth-low-energy/spbtle-rf.html
+ * http://www.st.com/content/st_com/en/products/motor-drivers/stepper-motor-drivers/l6470.html
+ * http://www.st.com/content/st_com/en/products/power-management/led-drivers/boost-current-regulators-for-led/led6001.html
+ * http://www.st.com/content/st_com/en/products/mems-and-sensors/humidity-sensors/hts221.html
+ * http://www.st.com/content/st_com/en/products/mems-and-sensors/pressure-sensors/lps25hb.html
+ * http://www.st.com/content/st_com/en/products/mems-and-sensors/inemo-inertial-modules/lsm6ds3.html
 
 
 
