@@ -91,32 +91,6 @@
 #define AD_TYPE_COMPLETE_LOCAL_NAME          (0x09)
 
 
-
-#ifdef ARDUINO_NUCLEO_F401RE
-  #define STM32_UUID ((uint32_t *)0x1FFF7A10)
-#endif
-
-#ifdef ARDUINO_NUCLEO_L476RG
-  #define STM32_UUID ((uint32_t *)0x1FFF7590)
-#endif
-
-#ifdef ARDUINO_NUCLEO_L053R8
-  #define STM32_UUID ((uint32_t *)0x1FF8007C)
-#endif
-
-#ifdef ARDUINO_NUCLEO_L152RE
-  #define STM32_UUID ((uint32_t *)0x1FF80050)
-#endif
-
-
-/* BlueNRG Board Type */
-#define IDB04A1 0
-#define IDB05A1 1
-
-/* Mems Board Type */
-#define IKS01A1 0
-#define IKS01A2 1
-
 /*SPI Configuration*/
 #define IDB0XA1_PIN_SPI_MOSI   (11)
 #define IDB0XA1_PIN_SPI_MISO   (12)
@@ -189,34 +163,21 @@ class Flight1Service
       BlueNRG_RST();
       /* get the BlueNRG HW and FW versions */
       getBlueNRGVersion(&hwVersion, &fwVersion);
-      if (hwVersion > 0x30) {
-        /* X-NUCLEO-IDB05A1 expansion board is used */
-        bnrg_expansion_board = IDB05A1;
-      } else {
-        /* X-NUCLEO-IDB0041 expansion board is used */
-        bnrg_expansion_board = IDB04A1;
-      }
+      
       BlueNRG_RST();
 
       /*Generate MAC Address*/
-      bdaddr[0] = (STM32_UUID[1]>>24)&0xFF;
-      bdaddr[1] = (STM32_UUID[0]    )&0xFF;
-      bdaddr[2] = (STM32_UUID[2] >>8)&0xFF;
-      bdaddr[3] = (STM32_UUID[0]>>16)&0xFF;
-      bdaddr[4] = (hwVersion > 0x30) ?
-       ((((FLIGHT1_VERSION_MAJOR-48)*10) + (FLIGHT1_VERSION_MINOR-48)+100)&0xFF) :
-       ((((FLIGHT1_VERSION_MAJOR-48)*10) + (FLIGHT1_VERSION_MINOR-48)    )&0xFF) ;
-      bdaddr[5] = 0xC0; /* for a Legal BLE Random MAC */
+      uint8_t data_len_out;
+      ret = aci_hal_read_config_data(CONFIG_DATA_RANDOM_ADDRESS, 6, &data_len_out, bdaddr);
+      
       ret = aci_gatt_init();
       if(ret){
          FLIGHT1_PRINTF("\r\nGATT_Init failed\r\n");
          goto fail;
       }
-      if (bnrg_expansion_board == IDB05A1) {
-        ret = aci_gap_init_IDB05A1(GAP_PERIPHERAL_ROLE_IDB05A1, 0, 0x07, &service_handle, &dev_name_char_handle, &appearance_char_handle);
-      }else {
-        ret = aci_gap_init_IDB04A1(GAP_PERIPHERAL_ROLE_IDB04A1, &service_handle, &dev_name_char_handle, &appearance_char_handle);
-      }
+      
+      ret = aci_gap_init_IDB05A1(GAP_PERIPHERAL_ROLE_IDB05A1, 0, 0x07, &service_handle, &dev_name_char_handle, &appearance_char_handle);
+      
       if(ret != BLE_STATUS_SUCCESS){
          FLIGHT1_PRINTF("\r\nGAP_Init failed\r\n");
          goto fail;
@@ -254,7 +215,7 @@ class Flight1Service
          hwVersion,
          fwVersion>>8,
          (fwVersion>>4)&0xF,
-         (hwVersion > 0x30) ? ('a'+(fwVersion&0xF)-1) : 'a',
+         ('a'+(fwVersion&0xF)-1),
          BoardName,
          bdaddr[5],bdaddr[4],bdaddr[3],bdaddr[2],bdaddr[1],bdaddr[0]);
 
@@ -503,7 +464,7 @@ class Flight1Service
       return BLE_STATUS_SUCCESS;
     
     fail:
-      //FLIGHT1_PRINTF("Error while adding HW's Characteristcs service.\n");
+      FLIGHT1_PRINTF("Error while adding HW's Characteristcs service.\n");
       return BLE_STATUS_ERROR;
     }
 
@@ -512,7 +473,6 @@ class Flight1Service
 
   
     /*Private variables*/
-    uint8_t bnrg_expansion_board;
     uint8_t bdaddr[6];
     uint16_t service_handle, dev_name_char_handle, appearance_char_handle;
     uint32_t PinForParing;
@@ -616,12 +576,6 @@ LSM303AGR_MAG_Sensor *Mag;
 /*Setup distance sensors for gesture detection*/
 void SetupSingleShot(VL53L1_X_NUCLEO_53L1A1 *sensor){
   int status;
-
-  //First set high timing value in order to change distance mode
-  status = sensor->VL53L1X_SetTimingBudgetInMs(100);
-  if( status ){
-    SerialPort.println("SetMeasurementTimingBudgetMicroSeconds 1 failed");
-  }
 
   //Change distance mode to short range
   status = sensor->VL53L1X_SetDistanceMode(1);
