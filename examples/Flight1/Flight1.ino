@@ -77,14 +77,14 @@
 //#define DEBUG_MODE
 
 #ifdef DEBUG_MODE
-  #define FLIGHT1_PRINTF(...) \
+#define FLIGHT1_PRINTF(...) \
   do {\
     char report[130];\
     snprintf(report, sizeof(report), __VA_ARGS__);\
     SerialPort.print(report);\
   } while(0);
 #else
-  #define FLIGHT1_PRINTF(...) NULL
+#define FLIGHT1_PRINTF(...) NULL
 #endif
 /* Define the FLIGHT1 Name MUST be 7 char long */
 #define NAME_FLIGHT1 'F','L','1','V',FLIGHT1_VERSION_MAJOR,FLIGHT1_VERSION_MINOR,FLIGHT1_VERSION_PATCH
@@ -140,17 +140,17 @@ void Flight1_HCI_Event_CB(void *pckt);
 //Class for bluetooth communication and services
 class Flight1Service
 {
-  public:
-    Flight1Service(void)
-    {
+public:
+   Flight1Service(void)
+   {
       StartBlueNRG = FALSE;
       set_connectable= FALSE;
-      connected = FALSE; 
-    }
+      connected = FALSE;
+   }
 
-    /*Initializes the sensor with the default params*/
-    int begin()
-    {
+   /*Initializes the sensor with the default params*/
+   int begin()
+   {
       const char BoardName[8] = {NAME_FLIGHT1,0};
       int ret;
       uint8_t  hwVersion;
@@ -159,44 +159,49 @@ class Flight1Service
 
       /*Attach callback function*/
       attach_HCI_CB(Flight1_HCI_Event_CB);
-      
+
       BlueNRG_RST();
       /* get the BlueNRG HW and FW versions */
       getBlueNRGVersion(&hwVersion, &fwVersion);
-      
+
       BlueNRG_RST();
 
       /*Generate MAC Address*/
       uint8_t data_len_out;
       ret = aci_hal_read_config_data(CONFIG_DATA_RANDOM_ADDRESS, 6, &data_len_out, bdaddr);
-      
+
       ret = aci_gatt_init();
-      if(ret){
+      if(ret)
+      {
          FLIGHT1_PRINTF("\r\nGATT_Init failed\r\n");
          goto fail;
       }
-      
+
       ret = aci_gap_init_IDB05A1(GAP_PERIPHERAL_ROLE_IDB05A1, 0, 0x07, &service_handle, &dev_name_char_handle, &appearance_char_handle);
-      
-      if(ret != BLE_STATUS_SUCCESS){
+
+      if(ret != BLE_STATUS_SUCCESS)
+      {
          FLIGHT1_PRINTF("\r\nGAP_Init failed\r\n");
          goto fail;
       }
       ret = hci_le_set_random_address(bdaddr);
 
-      if(ret){
+      if(ret)
+      {
          FLIGHT1_PRINTF("\r\nSetting the Static Random BD_ADDR failed\r\n");
          goto fail;
-      } 
-      ret = aci_gatt_update_char_value(service_handle, dev_name_char_handle, 0,
-                                   7/*strlen(BoardName)*/, (uint8_t *)BoardName);
-      if(ret){
-         FLIGHT1_PRINTF("\r\naci_gatt_update_char_value failed\r\n");
-        while(1);
       }
-    
+      ret = aci_gatt_update_char_value(service_handle, dev_name_char_handle, 0,
+                                       7/*strlen(BoardName)*/, (uint8_t *)BoardName);
+      if(ret)
+      {
+         FLIGHT1_PRINTF("\r\naci_gatt_update_char_value failed\r\n");
+         while(1);
+      }
+
       ret=aci_gap_clear_security_database();
-      if (ret != BLE_STATUS_SUCCESS) {
+      if (ret != BLE_STATUS_SUCCESS)
+      {
          FLIGHT1_PRINTF("\r\nGAP clear security database failed\r\n");
          goto fail;
       }
@@ -205,19 +210,20 @@ class Flight1Service
                                          NULL, 7, 16,
                                          USE_FIXED_PIN_FOR_PAIRING, PinForParing,
                                          NO_BONDING);
-      if (ret != BLE_STATUS_SUCCESS) {
+      if (ret != BLE_STATUS_SUCCESS)
+      {
          FLIGHT1_PRINTF("\r\nGAP setting Authentication failed\r\n");
          goto fail;
       }
       /*Print device data*/
       FLIGHT1_PRINTF("SERVER: BLE Stack Initialized \r\n\t\tBoard type=%s HWver=%d, FWver=%d.%d.%c\r\n\t\tBoardName= %s\r\n\t\tBoardMAC = %x:%x:%x:%x:%x:%x\r\n",
-         "IDB05A1",
-         hwVersion,
-         fwVersion>>8,
-         (fwVersion>>4)&0xF,
-         ('a'+(fwVersion&0xF)-1),
-         BoardName,
-         bdaddr[5],bdaddr[4],bdaddr[3],bdaddr[2],bdaddr[1],bdaddr[0]);
+                     "IDB05A1",
+                     hwVersion,
+                     fwVersion>>8,
+                     (fwVersion>>4)&0xF,
+                     ('a'+(fwVersion&0xF)-1),
+                     BoardName,
+                     bdaddr[5],bdaddr[4],bdaddr[3],bdaddr[2],bdaddr[1],bdaddr[0]);
 
       FLIGHT1_PRINTF("\n");
 
@@ -226,24 +232,28 @@ class Flight1Service
 
       /*Add services*/
       ret = Add_HWServW2ST_Service();
-      if(ret == BLE_STATUS_SUCCESS){
-         FLIGHT1_PRINTF("HW      Service W2ST added successfully\r\n");}
+      if(ret == BLE_STATUS_SUCCESS)
+      {
+         FLIGHT1_PRINTF("HW      Service W2ST added successfully\r\n");
+      }
       else
-        { FLIGHT1_PRINTF("\r\nError while adding HW Service W2ST\r\n");}
-      
+      {
+         FLIGHT1_PRINTF("\r\nError while adding HW Service W2ST\r\n");
+      }
 
-      StartBlueNRG = TRUE; 
+
+      StartBlueNRG = TRUE;
       set_connectable = TRUE;
-      
+
       return ret;
-         
-    fail:
-      return ret;    
-    }
-    
-    /*Enables the device for the connection*/
-    int setConnectable()
-    {
+
+fail:
+      return ret;
+   }
+
+   /*Enables the device for the connection*/
+   int setConnectable()
+   {
       char local_name[8] = {AD_TYPE_COMPLETE_LOCAL_NAME,NAME_FLIGHT1};
       manuf_data[20] = bdaddr[5];
       manuf_data[21] = bdaddr[4];
@@ -251,7 +261,7 @@ class Flight1Service
       manuf_data[23] = bdaddr[2];
       manuf_data[24] = bdaddr[1];
       manuf_data[25] = bdaddr[0];
-      
+
       manuf_data[26] =  PinForParing     &0xFF;
       manuf_data[27] = (PinForParing>>8 )&0xFF;
       manuf_data[28] = (PinForParing>>16)&0xFF;
@@ -264,163 +274,169 @@ class Flight1Service
       manuf_data[17] |= 0x40; /* Gyroscope value*/
       manuf_data[17] |= 0x80; /* Accellerometer value*/
       manuf_data[19] |= 0x04; /* Gesture */
-    
+
       hci_le_set_scan_resp_data(0,NULL);
       aci_gap_set_discoverable(ADV_IND, 0, 0, STATIC_RANDOM_ADDR, NO_WHITE_LIST_USE, sizeof(local_name), local_name, 0, NULL, 0, 0);
       aci_gap_update_adv_data(26, manuf_data);
       set_connectable=FALSE;
 
       return 0;
-  }
+   }
 
-  /*Update enviromental data (press*/
-  tBleStatus Environmental_Update(int32_t Press,uint16_t Hum,int16_t Temp)
-    {
+   /*Update enviromental data (press*/
+   tBleStatus Environmental_Update(int32_t Press,uint16_t Hum,int16_t Temp)
+   {
       tBleStatus ret;
       uint8_t BuffPos;
-      
+
       uint8_t buff[2+4/*Press*/+2/*Hum*/+2/*Temp1*/];
-    
+
       STORE_LE_16(buff  ,millis());
       BuffPos=2;
-    
+
       STORE_LE_32(buff+BuffPos,Press);
       BuffPos+=4;
-    
+
       STORE_LE_16(buff+BuffPos,Hum);
       BuffPos+=2;
-      
+
       STORE_LE_16(buff+BuffPos,Temp);
       BuffPos+=2;
-    
+
       ret = aci_gatt_update_char_value(HWServW2STHandle, EnvironmentalCharHandle, 0, EnvironmentalCharSize,buff);
-    
-      if (ret != BLE_STATUS_SUCCESS){
-        FLIGHT1_PRINTF("Error Updating Environmental Char\r\n");
-        return BLE_STATUS_ERROR;
+
+      if (ret != BLE_STATUS_SUCCESS)
+      {
+         FLIGHT1_PRINTF("Error Updating Environmental Char\r\n");
+         return BLE_STATUS_ERROR;
       }
       return BLE_STATUS_SUCCESS;
-    }
+   }
 
-    /*Update de proximity sensor distance*/
-    tBleStatus FlightSense_Distance_Update(uint16_t Distance)
-    {
+   /*Update de proximity sensor distance*/
+   tBleStatus FlightSense_Distance_Update(uint16_t Distance)
+   {
       tBleStatus ret;
       uint8_t buff[2+2];
-      
+
       /* To discriminate the long proximity range from 53L1A1*/
       Distance= Distance | (1 << 15);
-    
+
       STORE_LE_16(buff  ,millis());
       STORE_LE_16(buff+2,Distance);
-    
+
       ret = aci_gatt_update_char_value(HWServW2STHandle, ProxCharHandle, 0, 2+2,buff);
-    
-      if (ret != BLE_STATUS_SUCCESS){
-        FLIGHT1_PRINTF("Error Updating Distance Char\r\n");
-        return BLE_STATUS_ERROR;
+
+      if (ret != BLE_STATUS_SUCCESS)
+      {
+         FLIGHT1_PRINTF("Error Updating Distance Char\r\n");
+         return BLE_STATUS_ERROR;
       }
       return BLE_STATUS_SUCCESS;
-    }
+   }
 
-    /*Update the accelerometer and gyroscope*/
-    tBleStatus AccGyroMag_Update(int32_t *Accel,int32_t *Gyros)
-    {  
+   /*Update the accelerometer and gyroscope*/
+   tBleStatus AccGyroMag_Update(int32_t *Accel,int32_t *Gyros)
+   {
       tBleStatus ret;
       int32_t AXIS_X;
       int32_t AXIS_Y;
       int32_t AXIS_Z;
-    
+
       uint8_t buff[2+3*2*2];
-    
+
       STORE_LE_16(buff   ,millis());
-      
+
       STORE_LE_16(buff+2 ,Accel[0]);
       STORE_LE_16(buff+4 ,Accel[1]);
       STORE_LE_16(buff+6 ,Accel[2]);
-      
+
       AXIS_X=(Gyros[0])/100;
       AXIS_Y=(Gyros[1])/100;
       AXIS_Z=(Gyros[2])/100;
-    
+
       STORE_LE_16(buff+8 ,AXIS_X);
       STORE_LE_16(buff+10,AXIS_Y);
       STORE_LE_16(buff+12,AXIS_Z);
-      
-      ret = aci_gatt_update_char_value(HWServW2STHandle, AccGyroMagCharHandle, 0, 2+3*2*2, buff);
-      
-      if (ret != BLE_STATUS_SUCCESS){
-        FLIGHT1_PRINTF("Error Updating Acc/Gyro/Mag Char\r\n");
-        return BLE_STATUS_ERROR;
-      }
-      return BLE_STATUS_SUCCESS;  
-    }
 
-    /*Update the gesture recognition*/
-    tBleStatus Gestures_Update(int32_t gest_code)
-    {
-      tBleStatus ret;
-    
-      uint8_t buff[2+ 1];
-    
-      STORE_LE_16(buff  ,millis());
-      buff[2] = gest_code;
-    
-      ret = aci_gatt_update_char_value(HWServW2STHandle, GestureDetCharHandle, 0, 2+1, buff);
-    
-      if (ret != BLE_STATUS_SUCCESS){
-        FLIGHT1_PRINTF("Error Updating Gesture Char\r\n");
-        return BLE_STATUS_ERROR;
+      ret = aci_gatt_update_char_value(HWServW2STHandle, AccGyroMagCharHandle, 0, 2+3*2*2, buff);
+
+      if (ret != BLE_STATUS_SUCCESS)
+      {
+         FLIGHT1_PRINTF("Error Updating Acc/Gyro/Mag Char\r\n");
+         return BLE_STATUS_ERROR;
       }
       return BLE_STATUS_SUCCESS;
-    }
-    
+   }
+
+   /*Update the gesture recognition*/
+   tBleStatus Gestures_Update(int32_t gest_code)
+   {
+      tBleStatus ret;
+
+      uint8_t buff[2+ 1];
+
+      STORE_LE_16(buff  ,millis());
+      buff[2] = gest_code;
+
+      ret = aci_gatt_update_char_value(HWServW2STHandle, GestureDetCharHandle, 0, 2+1, buff);
+
+      if (ret != BLE_STATUS_SUCCESS)
+      {
+         FLIGHT1_PRINTF("Error Updating Gesture Char\r\n");
+         return BLE_STATUS_ERROR;
+      }
+      return BLE_STATUS_SUCCESS;
+   }
 
 
-    /*Public variables*/
-    uint8_t set_connectable;
-    int connected;    
-    uint8_t StartBlueNRG;
-  
 
-  private:
+   /*Public variables*/
+   uint8_t set_connectable;
+   int connected;
+   uint8_t StartBlueNRG;
 
-    /*Add the services*/
-    tBleStatus Add_HWServW2ST_Service(void)
-    {
+
+private:
+
+   /*Add the services*/
+   tBleStatus Add_HWServW2ST_Service(void)
+   {
       tBleStatus ret;
       int32_t NumberChars = 6;
-    
+
       uint8_t uuid[16];
-      
+
       COPY_HW_SENS_W2ST_SERVICE_UUID(uuid);
       ret = aci_gatt_add_serv(UUID_TYPE_128,  uuid, PRIMARY_SERVICE,
                               1+3*NumberChars,
                               &HWServW2STHandle);
-    
-      if (ret != BLE_STATUS_SUCCESS) {
-        goto fail;
+
+      if (ret != BLE_STATUS_SUCCESS)
+      {
+         goto fail;
       }
-      
+
       /* Fill the Environmental BLE Characteristc */
       COPY_ENVIRONMENTAL_W2ST_CHAR_UUID(uuid);
-        uuid[14] |= 0x04; /* One Temperature value*/
-        EnvironmentalCharSize+=2;
-    
-       uuid[14] |= 0x08; /* Humidity */
-       EnvironmentalCharSize+=2;
-    
-        uuid[14] |= 0x10; /* Pressure value*/
-        EnvironmentalCharSize+=4;
-    
+      uuid[14] |= 0x04; /* One Temperature value*/
+      EnvironmentalCharSize+=2;
+
+      uuid[14] |= 0x08; /* Humidity */
+      EnvironmentalCharSize+=2;
+
+      uuid[14] |= 0x10; /* Pressure value*/
+      EnvironmentalCharSize+=4;
+
       ret =  aci_gatt_add_char(HWServW2STHandle, UUID_TYPE_128, uuid, EnvironmentalCharSize,
                                CHAR_PROP_NOTIFY|CHAR_PROP_READ,
                                ATTR_PERMISSION_NONE,
                                GATT_NOTIFY_READ_REQ_AND_WAIT_FOR_APPL_RESP,
                                16, 0, &EnvironmentalCharHandle);
-    
-      if (ret != BLE_STATUS_SUCCESS) {
-        goto fail;
+
+      if (ret != BLE_STATUS_SUCCESS)
+      {
+         goto fail;
       }
 
       /*Add gyroscope and accelerometer*/
@@ -430,9 +446,10 @@ class Flight1Service
                                ATTR_PERMISSION_NONE,
                                GATT_NOTIFY_READ_REQ_AND_WAIT_FOR_APPL_RESP,
                                16, 0, &AccGyroMagCharHandle);
-      
-      if (ret != BLE_STATUS_SUCCESS) {
-        goto fail;
+
+      if (ret != BLE_STATUS_SUCCESS)
+      {
+         goto fail;
       }
 
       /*Add proximity*/
@@ -442,9 +459,10 @@ class Flight1Service
                                ATTR_PERMISSION_NONE,
                                GATT_NOTIFY_READ_REQ_AND_WAIT_FOR_APPL_RESP,
                                16, 0, &ProxCharHandle);
-    
-      if (ret != BLE_STATUS_SUCCESS) {
-        goto fail;
+
+      if (ret != BLE_STATUS_SUCCESS)
+      {
+         goto fail;
       }
 
       /* Code for Gesture Detection integration - Start Section */
@@ -454,37 +472,39 @@ class Flight1Service
                                ATTR_PERMISSION_NONE,
                                GATT_NOTIFY_READ_REQ_AND_WAIT_FOR_APPL_RESP,
                                16, 0, &GestureDetCharHandle);
-    
-      if (ret != BLE_STATUS_SUCCESS) {
-        goto fail;
+
+      if (ret != BLE_STATUS_SUCCESS)
+      {
+         goto fail;
       }
 
-      
-    
+
+
       return BLE_STATUS_SUCCESS;
-    
-    fail:
+
+fail:
       FLIGHT1_PRINTF("Error while adding HW's Characteristcs service.\n");
       return BLE_STATUS_ERROR;
-    }
+   }
 
 
 
 
-  
-    /*Private variables*/
-    uint8_t bdaddr[6];
-    uint16_t service_handle, dev_name_char_handle, appearance_char_handle;
-    uint32_t PinForParing;
-    uint32_t ForceReCalibration    =0;
-    uint32_t FirstConnectionConfig =0;
-    uint16_t HWServW2STHandle;
-    uint8_t  EnvironmentalCharSize=2; /* Size for Environmental BLE characteristic */
-    uint16_t EnvironmentalCharHandle;   
-    uint16_t AccGyroMagCharHandle;   
-    uint16_t ProxCharHandle;
-    uint16_t GestureDetCharHandle;
-    uint8_t manuf_data[30] = {
+
+   /*Private variables*/
+   uint8_t bdaddr[6];
+   uint16_t service_handle, dev_name_char_handle, appearance_char_handle;
+   uint32_t PinForParing;
+   uint32_t ForceReCalibration    =0;
+   uint32_t FirstConnectionConfig =0;
+   uint16_t HWServW2STHandle;
+   uint8_t  EnvironmentalCharSize=2; /* Size for Environmental BLE characteristic */
+   uint16_t EnvironmentalCharHandle;
+   uint16_t AccGyroMagCharHandle;
+   uint16_t ProxCharHandle;
+   uint16_t GestureDetCharHandle;
+   uint8_t manuf_data[30] =
+   {
       2  /* lenght*/,0x0A,0x00 /* 0 dBm */, // Trasmission Power
       8  /* lenght*/,0x09,NAME_FLIGHT1, // Complete Name
       13 /* lenght*/ ,0xFF,0x01,/*SKD version */
@@ -503,7 +523,7 @@ class Flight1Service
       0x00,
       0x00,
       0x00  /* BLE PIN stop */
-    };
+   };
 };
 
 Flight1Service Flight1;
@@ -512,41 +532,44 @@ Flight1Service Flight1;
 /*Callback function*/
 void Flight1_HCI_Event_CB(void *pckt)
 {
-  hci_uart_pckt *hci_pckt =(hci_uart_pckt*) pckt;
-  hci_event_pckt *event_pckt = (hci_event_pckt*)hci_pckt->data;
+   hci_uart_pckt *hci_pckt =(hci_uart_pckt*) pckt;
+   hci_event_pckt *event_pckt = (hci_event_pckt*)hci_pckt->data;
 
-  FLIGHT1_PRINTF("In Callback");
-  
-  if(hci_pckt->type != HCI_EVENT_PKT) {
-    return;
-  }
-  /*Switch event*/
-  switch(event_pckt->evt){
+   FLIGHT1_PRINTF("In Callback");
 
-    /*if disconnected*/
-  case EVT_DISCONN_COMPLETE:
-    {
+   if(hci_pckt->type != HCI_EVENT_PKT)
+   {
+      return;
+   }
+   /*Switch event*/
+   switch(event_pckt->evt)
+   {
+
+   /*if disconnected*/
+   case EVT_DISCONN_COMPLETE:
+   {
       Flight1.connected = FALSE;
       Flight1.set_connectable = TRUE;
-    }
-    break;
-  case EVT_LE_META_EVENT:
-    {
+   }
+   break;
+   case EVT_LE_META_EVENT:
+   {
       evt_le_meta_event *evt = (evt_le_meta_event *)event_pckt->data;
-      
-      switch(evt->subevent){
-        /*if connected*/
-      case EVT_LE_CONN_COMPLETE:
-        {
-          evt_le_connection_complete *cc = (evt_le_connection_complete *)evt->data;
-          Flight1.connected=TRUE;
-        }
-        break;
-      }
-    }
-    break;
 
-  }
+      switch(evt->subevent)
+      {
+      /*if connected*/
+      case EVT_LE_CONN_COMPLETE:
+      {
+         evt_le_connection_complete *cc = (evt_le_connection_complete *)evt->data;
+         Flight1.connected=TRUE;
+      }
+      break;
+      }
+   }
+   break;
+
+   }
 }
 
 
@@ -574,287 +597,311 @@ LSM303AGR_MAG_Sensor *Mag;
 
 
 /*Setup distance sensors for gesture detection*/
-void SetupSingleShot(VL53L1_X_NUCLEO_53L1A1 *sensor){
-  int status;
+void SetupSingleShot(VL53L1_X_NUCLEO_53L1A1 *sensor)
+{
+   int status;
 
-  //Change distance mode to short range
-  status = sensor->VL53L1X_SetDistanceMode(1);
-  if( status ){
-    SerialPort.println("SetDistanceMode failed");
-  }
+   //Change distance mode to short range
+   status = sensor->VL53L1X_SetDistanceMode(1);
+   if( status )
+   {
+      SerialPort.println("SetDistanceMode failed");
+   }
 
-  //Change timing budget again to 15 ms
-  status = sensor->VL53L1X_SetTimingBudgetInMs(20);
-  if( status ){
-    SerialPort.println("SetMeasurementTimingBudgetMicroSeconds 2 failed");
-  }
-  status = sensor->VL53L1X_SetInterMeasurementInMs(20);
-  if( status ){
-    SerialPort.println("SetInterMeasurementPeriodMilliSeconds failed");
-  }
-  
+   //Change timing budget again to 15 ms
+   status = sensor->VL53L1X_SetTimingBudgetInMs(20);
+   if( status )
+   {
+      SerialPort.println("SetMeasurementTimingBudgetMicroSeconds 2 failed");
+   }
+   status = sensor->VL53L1X_SetInterMeasurementInMs(20);
+   if( status )
+   {
+      SerialPort.println("SetInterMeasurementPeriodMilliSeconds failed");
+   }
+
 }
 
 
-void setup() {
-  int status;
-  SerialPort.begin(115200);
-  DEV_I2C.begin();
+void setup()
+{
+   int status;
+   SerialPort.begin(115200);
+   DEV_I2C.begin();
 
-  pinMode(LED_BUILTIN, OUTPUT); //D13 LED
+   pinMode(LED_BUILTIN, OUTPUT); //D13 LED
 
-  int ret;
+   int ret;
 
-  //Initialize bluetooth communication
-  if(BTLE.begin() == SPBTLERF_ERROR)
-  {
-    SerialPort.println("Bluetooth module configuration error!");
-    while(1);
-  }
+   //Initialize bluetooth communication
+   if(BTLE.begin() == SPBTLERF_ERROR)
+   {
+      SerialPort.println("Bluetooth module configuration error!");
+      while(1);
+   }
 
-  if(Flight1.begin())
-  {
-    SerialPort.println("Bluetooth services configuration error!");
-    while(1);
-  }
-  SerialPort.println("Bluetooth configuration done!");
+   if(Flight1.begin())
+   {
+      SerialPort.println("Bluetooth services configuration error!");
+      while(1);
+   }
+   SerialPort.println("Bluetooth configuration done!");
 
-    // Create VL53L1X top component.
-  xshutdown_top = new STMPE1600DigiOut(&DEV_I2C, GPIO_15, (0x42 * 2));
-  sensor_vl53l1_top = new VL53L1_X_NUCLEO_53L1A1(&DEV_I2C, xshutdown_top, A2);
-  
-  // Switch off VL53L1X top component.
-  sensor_vl53l1_top->VL53L1_Off();
-  
-  // Create (if present) VL53L1X left component.
-  xshutdown_left = new STMPE1600DigiOut(&DEV_I2C, GPIO_14, (0x43 * 2));
-  sensor_vl53l1_left = new VL53L1_X_NUCLEO_53L1A1(&DEV_I2C, xshutdown_left, D8);
-  
-  //Switch off (if present) VL53L1X left component.
-  sensor_vl53l1_left->VL53L1_Off();
-  
-  // Create (if present) VL53L1X right component.
-  xshutdown_right = new STMPE1600DigiOut(&DEV_I2C, GPIO_15, (0x43 * 2));
-  sensor_vl53l1_right = new VL53L1_X_NUCLEO_53L1A1(&DEV_I2C, xshutdown_right, D2);
-  
-  // Switch off (if present) VL53L1X right component.
-  sensor_vl53l1_right->VL53L1_Off();
+   // Create VL53L1X top component.
+   xshutdown_top = new STMPE1600DigiOut(&DEV_I2C, GPIO_15, (0x42 * 2));
+   sensor_vl53l1_top = new VL53L1_X_NUCLEO_53L1A1(&DEV_I2C, xshutdown_top, A2);
 
-  //Initialize the sensor
-  sensor_vl53l1_top->InitSensor(0x10);
-  sensor_vl53l1_left->InitSensor(0x12);
-  sensor_vl53l1_right->InitSensor(0x14);
+   // Switch off VL53L1X top component.
+   sensor_vl53l1_top->VL53L1_Off();
 
-  //Change Distance mode and timings
-  SetupSingleShot(sensor_vl53l1_top);
-  SetupSingleShot(sensor_vl53l1_left);
-  SetupSingleShot(sensor_vl53l1_right);
+   // Create (if present) VL53L1X left component.
+   xshutdown_left = new STMPE1600DigiOut(&DEV_I2C, GPIO_14, (0x43 * 2));
+   sensor_vl53l1_left = new VL53L1_X_NUCLEO_53L1A1(&DEV_I2C, xshutdown_left, D8);
 
-  
-  //Top sensor should be in long distance mode
-  sensor_vl53l1_top->VL53L1X_SetDistanceMode(2);
-  
-  // Initialize VL53L1X gesture library.
-  tof_gestures_initDIRSWIPE_1(400, 0, 500, &gestureDirSwipeData);
-  tof_gestures_initTAP_1(&gestureTapData);
-  
-  //Start measurement
-  sensor_vl53l1_top->VL53L1X_StartRanging();
-  sensor_vl53l1_left->VL53L1X_StartRanging();
-  sensor_vl53l1_right->VL53L1X_StartRanging();
+   //Switch off (if present) VL53L1X left component.
+   sensor_vl53l1_left->VL53L1_Off();
 
-  //Setup MEMS sensors
-  HumTemp  = new HTS221Sensor (&DEV_I2C);
-  HumTemp->Enable();
-  PressTemp = new LPS22HBSensor (&DEV_I2C);
-  PressTemp->Enable();
-  AccGyr = new LSM6DSLSensor(&DEV_I2C);
-  AccGyr->Enable_X();
-  AccGyr->Enable_G();
-  Acc2 = new LSM303AGR_ACC_Sensor(&DEV_I2C);
-  Acc2->Enable();
-  Mag = new LSM303AGR_MAG_Sensor(&DEV_I2C);
-  Mag->Enable();
+   // Create (if present) VL53L1X right component.
+   xshutdown_right = new STMPE1600DigiOut(&DEV_I2C, GPIO_15, (0x43 * 2));
+   sensor_vl53l1_right = new VL53L1_X_NUCLEO_53L1A1(&DEV_I2C, xshutdown_right, D2);
+
+   // Switch off (if present) VL53L1X right component.
+   sensor_vl53l1_right->VL53L1_Off();
+
+   //Initialize the sensor
+   sensor_vl53l1_top->InitSensor(0x10);
+   sensor_vl53l1_left->InitSensor(0x12);
+   sensor_vl53l1_right->InitSensor(0x14);
+
+   //Change Distance mode and timings
+   SetupSingleShot(sensor_vl53l1_top);
+   SetupSingleShot(sensor_vl53l1_left);
+   SetupSingleShot(sensor_vl53l1_right);
+
+
+   //Top sensor should be in long distance mode
+   sensor_vl53l1_top->VL53L1X_SetDistanceMode(2);
+
+   // Initialize VL53L1X gesture library.
+   tof_gestures_initDIRSWIPE_1(400, 0, 500, &gestureDirSwipeData);
+   tof_gestures_initTAP_1(&gestureTapData);
+
+   //Start measurement
+   sensor_vl53l1_top->VL53L1X_StartRanging();
+   sensor_vl53l1_left->VL53L1X_StartRanging();
+   sensor_vl53l1_right->VL53L1X_StartRanging();
+
+   //Setup MEMS sensors
+   HumTemp  = new HTS221Sensor (&DEV_I2C);
+   HumTemp->Enable();
+   PressTemp = new LPS22HBSensor (&DEV_I2C);
+   PressTemp->Enable();
+   AccGyr = new LSM6DSLSensor(&DEV_I2C);
+   AccGyr->Enable_X();
+   AccGyr->Enable_G();
+   Acc2 = new LSM303AGR_ACC_Sensor(&DEV_I2C);
+   Acc2->Enable();
+   Mag = new LSM303AGR_MAG_Sensor(&DEV_I2C);
+   Mag->Enable();
 }
 
-void loop() {
-  /*If device is connectable setup advertisement*/
-  if(Flight1.set_connectable)
-  {
-    Flight1.setConnectable();
-  }
-  int status;
-  uint8_t ready = 0;
-  uint16_t distance;
-  int32_t decPart, intPart;
-  int32_t PressToSend=0;
-  uint16_t HumToSend=0;
-  int16_t TempToSend=0;
-  int gesture_code;
-  int left_done = 0;
-  int right_done = 0;
-  uint8_t NewDataReady=0;
-  uint8_t RangeStatus;
-  BTLE.update();
-  if(Flight1.connected){
-    //Get enviroment data
-    float humidity, temperature;
-    HumTemp->GetHumidity(&humidity);
-    HumTemp->GetTemperature(&temperature);
-    float pressure;
-    PressTemp->GetPressure(&pressure);
-    MCR_BLUEMS_F2I_2D(pressure, intPart, decPart);
-    PressToSend=intPart*100+decPart;
-    MCR_BLUEMS_F2I_1D(humidity, intPart, decPart);
-    HumToSend = intPart*10+decPart;
-    MCR_BLUEMS_F2I_1D(temperature, intPart, decPart);
-    TempToSend = intPart*10+decPart; 
-  
-    // Read accelerometer and gyroscope.
-    int32_t accelerometer[3];
-    int32_t gyroscope[3];
-    AccGyr->Get_X_Axes(accelerometer);
-    AccGyr->Get_G_Axes(gyroscope);
-  
-    FLIGHT1_PRINTF("Accelerometer:\tX:%d\tY:%d\tZ:%d\n", accelerometer[0], accelerometer[1], accelerometer[2]);
-    FLIGHT1_PRINTF("Gyroscope:\tX:%d\tY:%d\tZ:%d\n", gyroscope[0], gyroscope[1], gyroscope[2]);
-    
-    //Get top sensor distance and transmit
-     do {
-      sensor_vl53l1_top->VL53L1X_CheckForDataReady(&ready);
-    } while (!ready);
-  
-    status = sensor_vl53l1_top->VL53L1X_GetRangeStatus(&RangeStatus);
-    status = sensor_vl53l1_top->VL53L1X_GetDistance(&distance);
-  
-    if (status == VL53L1_ERROR_NONE)
-    {
-      Flight1.FlightSense_Distance_Update(distance);
-    }
-  
-    //Clear interrupt
-    status = sensor_vl53l1_top->VL53L1X_ClearInterrupt();
-  
-    distance = (RangeStatus == 0 && distance<1400) ? distance : 1400;
-  
-    // Launch gesture detection algorithm.
-    gesture_code = tof_gestures_detectTAP_1(distance, &gestureTapData);
-  
-    // Check the result of the gesture detection algorithm.
-    switch(gesture_code)
-    {
+void loop()
+{
+   /*If device is connectable setup advertisement*/
+   if(Flight1.set_connectable)
+   {
+      Flight1.setConnectable();
+   }
+   int status;
+   uint8_t ready = 0;
+   uint16_t distance;
+   int32_t decPart, intPart;
+   int32_t PressToSend=0;
+   uint16_t HumToSend=0;
+   int16_t TempToSend=0;
+   int gesture_code;
+   int left_done = 0;
+   int right_done = 0;
+   uint8_t NewDataReady=0;
+   uint8_t RangeStatus;
+   BTLE.update();
+   if(Flight1.connected)
+   {
+      //Get enviroment data
+      float humidity, temperature;
+      HumTemp->GetHumidity(&humidity);
+      HumTemp->GetTemperature(&temperature);
+      float pressure;
+      PressTemp->GetPressure(&pressure);
+      MCR_BLUEMS_F2I_2D(pressure, intPart, decPart);
+      PressToSend=intPart*100+decPart;
+      MCR_BLUEMS_F2I_1D(humidity, intPart, decPart);
+      HumToSend = intPart*10+decPart;
+      MCR_BLUEMS_F2I_1D(temperature, intPart, decPart);
+      TempToSend = intPart*10+decPart;
+
+      // Read accelerometer and gyroscope.
+      int32_t accelerometer[3];
+      int32_t gyroscope[3];
+      AccGyr->Get_X_Axes(accelerometer);
+      AccGyr->Get_G_Axes(gyroscope);
+
+      FLIGHT1_PRINTF("Accelerometer:\tX:%d\tY:%d\tZ:%d\n", accelerometer[0], accelerometer[1], accelerometer[2]);
+      FLIGHT1_PRINTF("Gyroscope:\tX:%d\tY:%d\tZ:%d\n", gyroscope[0], gyroscope[1], gyroscope[2]);
+
+      //Get top sensor distance and transmit
+      do
+      {
+         sensor_vl53l1_top->VL53L1X_CheckForDataReady(&ready);
+      }
+      while (!ready);
+
+      status = sensor_vl53l1_top->VL53L1X_GetRangeStatus(&RangeStatus);
+      status = sensor_vl53l1_top->VL53L1X_GetDistance(&distance);
+
+      if (status == VL53L1_ERROR_NONE)
+      {
+         Flight1.FlightSense_Distance_Update(distance);
+      }
+
+      //Clear interrupt
+      status = sensor_vl53l1_top->VL53L1X_ClearInterrupt();
+
+      distance = (RangeStatus == 0 && distance<1400) ? distance : 1400;
+
+      // Launch gesture detection algorithm.
+      gesture_code = tof_gestures_detectTAP_1(distance, &gestureTapData);
+
+      // Check the result of the gesture detection algorithm.
+      switch(gesture_code)
+      {
       case GESTURES_SINGLE_TAP:
-        Flight1.Gestures_Update(1);
-        break;
+         Flight1.Gestures_Update(1);
+         break;
       default:
-        // Do nothing
-        break;
-    }
-    
-  
-    //wait for data ready
-    do
-    {
-      //if left not done
-      if(left_done == 0)
-      {
-        NewDataReady = 0;
-        //check measurement data ready
-        int status = sensor_vl53l1_left->VL53L1X_CheckForDataReady(&NewDataReady);
-  
-        if( status ){
-          SerialPort.println("GetMeasurementDataReady left sensor failed");
-        }
-        //if ready
-        if(NewDataReady)
-        {
-          //get status
-          status = sensor_vl53l1_left->VL53L1X_GetRangeStatus(&RangeStatus);
-          if( status ){
-            SerialPort.println("GetRangeStatus left sensor failed");
-          }
-  
-          //if distance < 1.3 m
-          if (RangeStatus != 4) {
-            // we have a valid range.
-            status = sensor_vl53l1_left->VL53L1X_GetDistance(&distance_left);
-            if( status ){
-              SerialPort.println("GetDistance left sensor failed");
-            }
-          }else {
-            distance_left = 1400;   //default distance
-          }
-  
-          //restart measurement
-          status = sensor_vl53l1_left->VL53L1X_ClearInterrupt();
-          if( status ){
-            SerialPort.println("Restart left sensor failed");
-          }
-          
-          left_done = 1 ;
-        }
+         // Do nothing
+         break;
       }
-  
-      //if right not done
-      if(right_done == 0)
-      {
-        NewDataReady = 0;
-        //check measurement data ready
-        int status = sensor_vl53l1_right->VL53L1X_CheckForDataReady(&NewDataReady);
-  
-        if( status ){
-          SerialPort.println("GetMeasurementDataReady right sensor failed");
-        }
-        //if ready
-        if(NewDataReady)
-        {
-          //get status
-          status = sensor_vl53l1_right->VL53L1X_GetRangeStatus(&RangeStatus);
-          if( status ){
-            SerialPort.println("GetRangeStatus right sensor failed");
-          }
-          //if distance < 1.3 m
-          if (RangeStatus != 4) {
-            // we have a valid range.
-            status = sensor_vl53l1_right->VL53L1X_GetDistance(&distance_right);
-            if( status ){
-              SerialPort.println("GetDistance right sensor failed");
-            }
-          }else {
-            distance_right = 1400;   //default distance
-          }
-  
-          //restart measurement
-          status = sensor_vl53l1_right->VL53L1X_ClearInterrupt();
-          if( status ){
-            SerialPort.println("Restart right sensor failed");
-          }
-          
-          right_done = 1 ;
-        }
-      }
-    }while(left_done == 0 || right_done == 0);
-  
-  
-    // Launch gesture detection algorithm.
-    gesture_code = tof_gestures_detectDIRSWIPE_1(distance_left, distance_right, &gestureDirSwipeData);
-  
-    // Check the result of the gesture detection algorithm.
-    switch(gesture_code)
-    {
-      case GESTURES_SWIPE_LEFT_RIGHT:
-        Flight1.Gestures_Update(3);
-        break;
-      case GESTURES_SWIPE_RIGHT_LEFT:
-        Flight1.Gestures_Update(2);
-        break;
-      default:
-        // Do nothing
-        break;
-    }
 
-    //Send all mems sensors data
-    Flight1.Environmental_Update(PressToSend, HumToSend, TempToSend);
-    Flight1.AccGyroMag_Update(accelerometer, gyroscope);
-  }
+
+      //wait for data ready
+      do
+      {
+         //if left not done
+         if(left_done == 0)
+         {
+            NewDataReady = 0;
+            //check measurement data ready
+            int status = sensor_vl53l1_left->VL53L1X_CheckForDataReady(&NewDataReady);
+
+            if( status )
+            {
+               SerialPort.println("GetMeasurementDataReady left sensor failed");
+            }
+            //if ready
+            if(NewDataReady)
+            {
+               //get status
+               status = sensor_vl53l1_left->VL53L1X_GetRangeStatus(&RangeStatus);
+               if( status )
+               {
+                  SerialPort.println("GetRangeStatus left sensor failed");
+               }
+
+               //if distance < 1.3 m
+               if (RangeStatus != 4)
+               {
+                  // we have a valid range.
+                  status = sensor_vl53l1_left->VL53L1X_GetDistance(&distance_left);
+                  if( status )
+                  {
+                     SerialPort.println("GetDistance left sensor failed");
+                  }
+               }
+               else
+               {
+                  distance_left = 1400;   //default distance
+               }
+
+               //restart measurement
+               status = sensor_vl53l1_left->VL53L1X_ClearInterrupt();
+               if( status )
+               {
+                  SerialPort.println("Restart left sensor failed");
+               }
+
+               left_done = 1 ;
+            }
+         }
+
+         //if right not done
+         if(right_done == 0)
+         {
+            NewDataReady = 0;
+            //check measurement data ready
+            int status = sensor_vl53l1_right->VL53L1X_CheckForDataReady(&NewDataReady);
+
+            if( status )
+            {
+               SerialPort.println("GetMeasurementDataReady right sensor failed");
+            }
+            //if ready
+            if(NewDataReady)
+            {
+               //get status
+               status = sensor_vl53l1_right->VL53L1X_GetRangeStatus(&RangeStatus);
+               if( status )
+               {
+                  SerialPort.println("GetRangeStatus right sensor failed");
+               }
+               //if distance < 1.3 m
+               if (RangeStatus != 4)
+               {
+                  // we have a valid range.
+                  status = sensor_vl53l1_right->VL53L1X_GetDistance(&distance_right);
+                  if( status )
+                  {
+                     SerialPort.println("GetDistance right sensor failed");
+                  }
+               }
+               else
+               {
+                  distance_right = 1400;   //default distance
+               }
+
+               //restart measurement
+               status = sensor_vl53l1_right->VL53L1X_ClearInterrupt();
+               if( status )
+               {
+                  SerialPort.println("Restart right sensor failed");
+               }
+
+               right_done = 1 ;
+            }
+         }
+      }
+      while(left_done == 0 || right_done == 0);
+
+
+      // Launch gesture detection algorithm.
+      gesture_code = tof_gestures_detectDIRSWIPE_1(distance_left, distance_right, &gestureDirSwipeData);
+
+      // Check the result of the gesture detection algorithm.
+      switch(gesture_code)
+      {
+      case GESTURES_SWIPE_LEFT_RIGHT:
+         Flight1.Gestures_Update(3);
+         break;
+      case GESTURES_SWIPE_RIGHT_LEFT:
+         Flight1.Gestures_Update(2);
+         break;
+      default:
+         // Do nothing
+         break;
+      }
+
+      //Send all mems sensors data
+      Flight1.Environmental_Update(PressToSend, HumToSend, TempToSend);
+      Flight1.AccGyroMag_Update(accelerometer, gyroscope);
+   }
 }
