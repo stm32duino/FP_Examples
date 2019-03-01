@@ -5,7 +5,8 @@
  * @version V1.0.0
  * @date    21 December 2018
  * @brief   Arduino demo application for the STMicrolectronics
- *          X-NUCLEO-IKS01A2, X-NUCLEO-53L1A1 and X-NUCLEO-IDB05A1
+ *          X-NUCLEO-IKS01A2 or X-NUCLEO-IKS01A3, X-NUCLEO-53L1A1
+ *          and X-NUCLEO-IDB05A1
  ******************************************************************************
  * @attention
  *
@@ -60,11 +61,28 @@
 #include <tof_gestures.h>
 #include <tof_gestures_DIRSWIPE_1.h>
 #include <tof_gestures_TAP_1.h>
+
+
+//NOTE: In order to use this example with the IKS01A2 board uncomment the
+//      USE_IKS01A2 define and comment the USE_IKS01A3 define
+#define USE_IKS01A3
+//#define USE_IKS01A2
+
+
+#ifdef USE_IKS01A3
+#include <HTS221Sensor.h>
+#include <LPS22HHSensor.h>
+#include <LIS2DW12Sensor.h>
+#include <LIS2MDLSensor.h>
+#include <LSM6DSOSensor.h>
+#include <STTS751Sensor.h>
+#elif defined(USE_IKS01A2)
 #include <HTS221Sensor.h>
 #include <LPS22HBSensor.h>
 #include <LSM303AGR_ACC_Sensor.h>
 #include <LSM303AGR_MAG_Sensor.h>
 #include <LSM6DSLSensor.h>
+#endif
 
 #define DEV_I2C Wire
 #define SerialPort Serial
@@ -390,7 +408,6 @@ fail:
    }
 
 
-
    /*Public variables*/
    uint8_t set_connectable;
    int connected;
@@ -589,11 +606,20 @@ Gesture_TAP_1_Data_t gestureTapData;
 uint16_t distance_top, distance_left, distance_right;
 
 //MEMS sensors
+#ifdef USE_IKS01A3
+HTS221Sensor  *HumTemp;
+LPS22HHSensor  *PressTemp;
+LSM6DSOSensor *AccGyr;
+LIS2DW12Sensor *Acc2;
+LIS2MDLSensor *Mag;
+STTS751Sensor *Temp;
+#elif defined (USE_IKS01A2)
 HTS221Sensor  *HumTemp;
 LPS22HBSensor  *PressTemp;
 LSM6DSLSensor *AccGyr;
 LSM303AGR_ACC_Sensor *Acc2;
 LSM303AGR_MAG_Sensor *Mag;
+#endif
 
 
 /*Setup distance sensors for gesture detection*/
@@ -692,16 +718,27 @@ void setup()
    sensor_vl53l1_right->VL53L1X_StartRanging();
 
    //Setup MEMS sensors
+#ifdef USE_IKS01A3
    HumTemp  = new HTS221Sensor (&DEV_I2C);
-   HumTemp->Enable();
+   PressTemp = new LPS22HHSensor (&DEV_I2C);
+   AccGyr = new LSM6DSOSensor(&DEV_I2C);
+   Acc2 = new LIS2DW12Sensor(&DEV_I2C);
+   Mag = new LIS2MDLSensor(&DEV_I2C);
+   Temp = new STTS751Sensor(&DEV_I2C);
+   Temp->Enable();
+   Acc2->Enable_X();
+#elif defined (USE_IKS01A2)
+   HumTemp  = new HTS221Sensor (&DEV_I2C);
    PressTemp = new LPS22HBSensor (&DEV_I2C);
-   PressTemp->Enable();
    AccGyr = new LSM6DSLSensor(&DEV_I2C);
+   Acc2 = new LSM303AGR_ACC_Sensor(&DEV_I2C);
+   Mag = new LSM303AGR_MAG_Sensor(&DEV_I2C);
+   Acc2->Enable();
+#endif
+   HumTemp->Enable();
+   PressTemp->Enable();
    AccGyr->Enable_X();
    AccGyr->Enable_G();
-   Acc2 = new LSM303AGR_ACC_Sensor(&DEV_I2C);
-   Acc2->Enable();
-   Mag = new LSM303AGR_MAG_Sensor(&DEV_I2C);
    Mag->Enable();
 }
 
@@ -728,10 +765,13 @@ void loop()
    if(Flight1.connected)
    {
       //Get enviroment data
-      float humidity, temperature;
+      float humidity, temperature, pressure;
       HumTemp->GetHumidity(&humidity);
+#ifdef USE_IKS01A3
+      Temp->GetTemperature(&temperature);
+#elif defined (USE_IKS01A2)
       HumTemp->GetTemperature(&temperature);
-      float pressure;
+#endif
       PressTemp->GetPressure(&pressure);
       MCR_BLUEMS_F2I_2D(pressure, intPart, decPart);
       PressToSend=intPart*100+decPart;

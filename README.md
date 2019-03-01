@@ -20,7 +20,7 @@ with X-NUCLEO-IKS01A2 and X-NUCLEO-IHM02A1 Expansion Boards. The application all
 stack of boards accordingly; the speed of motor increases when the angle of rotation increases as well. 
 * BleSensors_SensiBLE: This application provides an example of usage of a SensiBLE board. The application uses BLE along with environmental and motion sensors (humidity, temperature, pressure, accelerometer, gyroscope). The user can connect an Android or IOS device with BlueNRG application to SensiBLE and see sensors data. The data are also printed to the serial port.
 * Flight1: This application provides an example of usage of a NUCLEO board (it was tested with NUCLEO-F401RE, NUCLEO-L476RG, NUCLEO-L152RE) with
-X-NUCLEO-IKS01A2, X-NUCLEO-IDB05A1 and X-NUCLEO-53L1A1 Expansion Boards. The application gather data from the sensor mounted and then communicates
+X-NUCLEO-IKS01A2 or X-NUCLEO-IKS01A3, X-NUCLEO-IDB05A1 and X-NUCLEO-53L1A1 Expansion Boards. The application gather data from the sensor mounted and then communicates
 them via bluetooth to a suitable Android app (such as ST BLE Sensor). The data gathered include enviromental data (temperature, pression, humidity), 
 distance, gesture recognition (tap and directional swipe), acceleration and a gyroscope.
 
@@ -29,6 +29,8 @@ distance, gesture recognition (tap and directional swipe), acceleration and a gy
 The FP_Examples library requires the following STM32duino libraries (link to the source files):
 
 * STM32duino LSM6DSL: https://github.com/stm32duino/LSM6DSL
+* STM32duino LSM303AGR: https://github.com/stm32duino/LSM303AGR
+* STM32duino LPS22HB: https://github.com/stm32duino/LPS22HB
 * STM32duino Proximity_Gesture: https://github.com/stm32duino/Proximity_Gesture
 * STM32duino VL6180X: https://github.com/stm32duino/VL6180X
 * STM32duino VL53L0X: https://github.com/stm32duino/VL53L0X
@@ -42,12 +44,19 @@ The FP_Examples library requires the following STM32duino libraries (link to the
 * STM32duino HTS221: https://github.com/stm32duino/HTS221
 * STM32duino LPS25HB: https://github.com/stm32duino/LPS25HB
 * STM32duino LSM6DS3: https://github.com/stm32duino/LSM6DS3
+* STM32duino LSM6DSO: https://github.com/stm32duino/LSM6DSO
+* STM32duino LIS2DW12: https://github.com/stm32duino/LIS2DW12
+* STM32duino LIS2MDL: https://github.com/stm32duino/LIS2MDL
+* STM32duino LPS22HH: https://github.com/stm32duino/LPS22HH
+* STM32duino STTS751: https://github.com/stm32duino/STTS751
 
 
 ## Documentation
 
 The datasheets of the several components are available at  
  * http://www.st.com/content/st_com/en/products/mems-and-sensors/inemo-inertial-modules/lsm6dsl.html
+ * http://www.st.com/content/st_com/en/products/mems-and-sensors/e-compasses/lsm303agr.html
+ * http://www.st.com/content/st_com/en/products/mems-and-sensors/pressure-sensors/lps22hb.html
  * http://www.st.com/content/st_com/en/products/imaging-and-photonics-solutions/proximity-sensors/vl6180x.html
  * http://www.st.com/content/st_com/en/products/imaging-and-photonics-solutions/proximity-sensors/vl53l0x.html
  * http://www.st.com/content/st_com/en/products/imaging-and-photonics-solutions/proximity-sensors/vl53l1x.html
@@ -57,6 +66,11 @@ The datasheets of the several components are available at
  * http://www.st.com/content/st_com/en/products/mems-and-sensors/humidity-sensors/hts221.html
  * http://www.st.com/content/st_com/en/products/mems-and-sensors/pressure-sensors/lps25hb.html
  * http://www.st.com/content/st_com/en/products/mems-and-sensors/inemo-inertial-modules/lsm6ds3.html
+ * http://www.st.com/content/st_com/en/products/mems-and-sensors/inemo-inertial-modules/lsm6dso.html
+ * http://www.st.com/content/st_com/en/products/mems-and-sensors/accelerometers/lis2dw12.html
+ * http://www.st.com/content/st_com/en/products/mems-and-sensors/e-compasses/lis2mdl.html
+ * http://www.st.com/content/st_com/en/products/mems-and-sensors/pressure-sensors/lps22hh.html
+ * http://www.st.com/content/st_com/en/products/mems-and-sensors/temperature-sensors/stts751.html
 
 
 
