@@ -22,7 +22,7 @@ stack of boards accordingly; the speed of motor increases when the angle of rota
 * Flight1: This application provides an example of usage of a NUCLEO board (it was tested with NUCLEO-F401RE, NUCLEO-L476RG, NUCLEO-L152RE) with
 X-NUCLEO-IKS01A2 or X-NUCLEO-IKS01A3, X-NUCLEO-IDB05A1 and X-NUCLEO-53L1A1 Expansion Boards. The application gather data from the sensor mounted and then communicates
 them via bluetooth to a suitable Android app (such as ST BLE Sensor). The data gathered include enviromental data (temperature, pression, humidity), 
-distance, gesture recognition (tap and directional swipe), acceleration and a gyroscope.
+distance, gesture recognition (tap and directional swipe), acceleration (with accelerometer hardware events) and a gyroscope.
 
 ## Dependencies
 

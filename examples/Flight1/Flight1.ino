@@ -49,6 +49,7 @@
 #include "bluenrg_gap.h"
 #include "ble_status.h"
 #include "bluenrg_hal_aci.h"
+#include "bluenrg_aci_const.h"
 #include "link_layer.h"
 #include <SPBTLE_RF.h>
 
@@ -87,6 +88,17 @@
 #define DEV_I2C Wire
 #define SerialPort Serial
 
+#define INT_1 4
+#define INT_2 5
+
+//Interrupts.
+volatile int mems_event = 0;
+
+volatile uint8_t AccGyroMag_Enable = 0;
+volatile uint8_t Enviroment_Enable = 0;
+volatile uint8_t Distance_Enable = 0;
+volatile uint8_t Gestures_Enable = 0;
+
 /* Package Version only numbers 0->9 */
 #define FLIGHT1_VERSION_MAJOR '3'
 #define FLIGHT1_VERSION_MINOR '3'
@@ -102,7 +114,7 @@
     SerialPort.print(report);\
   } while(0);
 #else
-#define FLIGHT1_PRINTF(...) NULL
+#define FLIGHT1_PRINTF(...) while(0){;}
 #endif
 /* Define the FLIGHT1 Name MUST be 7 char long */
 #define NAME_FLIGHT1 'F','L','1','V',FLIGHT1_VERSION_MAJOR,FLIGHT1_VERSION_MINOR,FLIGHT1_VERSION_PATCH
@@ -132,11 +144,13 @@ SPBTLERFClass BTLE(&BTLE_SPI, IDB0XA1_PIN_SPI_nCS, IDB0XA1_PIN_SPI_IRQ, IDB0XA1_
 }
 
 #define COPY_HW_SENS_W2ST_SERVICE_UUID(uuid_struct)    COPY_UUID_128(uuid_struct,0x00,0x00,0x00,0x00,0x00,0x01,0x11,0xe1,0x9a,0xb4,0x00,0x02,0xa5,0xd5,0xc5,0x1b)
+#define COPY_CONFIG_SERVICE_UUID(uuid_struct)          COPY_UUID_128(uuid_struct,0x00,0x00,0x00,0x00,0x00,0x0F,0x11,0xe1,0x9a,0xb4,0x00,0x02,0xa5,0xd5,0xc5,0x1b)
 #define COPY_ENVIRONMENTAL_W2ST_CHAR_UUID(uuid_struct) COPY_UUID_128(uuid_struct,0x00,0x00,0x00,0x00,0x00,0x01,0x11,0xe1,0xac,0x36,0x00,0x02,0xa5,0xd5,0xc5,0x1b)
 #define COPY_ACC_GYRO_MAG_W2ST_CHAR_UUID(uuid_struct)  COPY_UUID_128(uuid_struct,0x00,0xE0,0x00,0x00,0x00,0x01,0x11,0xe1,0xac,0x36,0x00,0x02,0xa5,0xd5,0xc5,0x1b)
-#define COPY_PROX_W2ST_CHAR_UUID(uuid_struct)         COPY_UUID_128(uuid_struct,0x02,0x00,0x00,0x00,0x00,0x01,0x11,0xe1,0xac,0x36,0x00,0x02,0xa5,0xd5,0xc5,0x1b)
+#define COPY_PROX_W2ST_CHAR_UUID(uuid_struct)          COPY_UUID_128(uuid_struct,0x02,0x00,0x00,0x00,0x00,0x01,0x11,0xe1,0xac,0x36,0x00,0x02,0xa5,0xd5,0xc5,0x1b)
 #define COPY_GESTURE_W2ST_CHAR_UUID(uuid_struct)       COPY_UUID_128(uuid_struct,0x00,0x00,0x00,0x04,0x00,0x01,0x11,0xe1,0xac,0x36,0x00,0x02,0xa5,0xd5,0xc5,0x1b)
-
+#define COPY_ACC_EVENT_W2ST_CHAR_UUID(uuid_struct)     COPY_UUID_128(uuid_struct,0x00,0x00,0x04,0x00,0x00,0x01,0x11,0xe1,0xac,0x36,0x00,0x02,0xa5,0xd5,0xc5,0x1b)
+#define COPY_CONFIG_W2ST_CHAR_UUID(uuid_struct)        COPY_UUID_128(uuid_struct,0x00,0x00,0x00,0x02,0x00,0x0F,0x11,0xe1,0xac,0x36,0x00,0x02,0xa5,0xd5,0xc5,0x1b)
 
 #define STORE_LE_16(buf, val)    ( ((buf)[0] =  (uint8_t) (val)    ) , \
                                    ((buf)[1] =  (uint8_t) (val>>8) ) )
@@ -146,10 +160,55 @@ SPBTLERFClass BTLE(&BTLE_SPI, IDB0XA1_PIN_SPI_nCS, IDB0XA1_PIN_SPI_IRQ, IDB0XA1_
                                    ((buf)[2] =  (uint8_t) (val>>16) ) , \
                                    ((buf)[3] =  (uint8_t) (val>>24) ) )
 
+#define STORE_BE_32(buf, val)    ( ((buf)[3] =  (uint8_t) (val)     ) , \
+                                   ((buf)[2] =  (uint8_t) (val>>8)  ) , \
+                                   ((buf)[1] =  (uint8_t) (val>>16) ) , \
+                                   ((buf)[0] =  (uint8_t) (val>>24) ) )
+
 /*Macros for conversion from float to int*/
 #define MCR_BLUEMS_F2I_1D(in, out_int, out_dec) {out_int = (int32_t)in; out_dec= (int32_t)((in-out_int)*10);};
 #define MCR_BLUEMS_F2I_2D(in, out_int, out_dec) {out_int = (int32_t)in; out_dec= (int32_t)((in-out_int)*100);};
 
+#define FEATURE_MASK_ACC_EVENTS 0x00000400
+
+
+uint16_t AccEventCharHandle;
+uint16_t ConfigCharHandle;
+uint16_t EnvironmentalCharHandle;
+uint16_t AccGyroMagCharHandle;
+uint16_t ProxCharHandle;
+uint16_t GestureDetCharHandle;
+
+// Distance components.
+STMPE1600DigiOut *xshutdown_top;
+STMPE1600DigiOut *xshutdown_left;
+STMPE1600DigiOut *xshutdown_right;
+VL53L1_X_NUCLEO_53L1A1 *sensor_vl53l1_top;
+VL53L1_X_NUCLEO_53L1A1 *sensor_vl53l1_left;
+VL53L1_X_NUCLEO_53L1A1 *sensor_vl53l1_right;
+
+
+// Gesture structure.
+Gesture_DIRSWIPE_1_Data_t gestureDirSwipeData;
+Gesture_TAP_1_Data_t gestureTapData;
+// Range values
+uint16_t distance_top, distance_left, distance_right;
+
+//MEMS sensors
+#ifdef USE_IKS01A3
+HTS221Sensor  *HumTemp;
+LPS22HHSensor  *PressTemp;
+LSM6DSOSensor *AccGyr;
+LIS2DW12Sensor *Acc2;
+LIS2MDLSensor *Mag;
+STTS751Sensor *Temp;
+#elif defined (USE_IKS01A2)
+HTS221Sensor  *HumTemp;
+LPS22HBSensor  *PressTemp;
+LSM6DSLSensor *AccGyr;
+LSM303AGR_ACC_Sensor *Acc2;
+LSM303AGR_MAG_Sensor *Mag;
+#endif
 
 
 //Callback function
@@ -291,6 +350,7 @@ fail:
       manuf_data[17] |= 0x10; /* Pressure value*/
       manuf_data[17] |= 0x40; /* Gyroscope value*/
       manuf_data[17] |= 0x80; /* Accellerometer value*/
+      manuf_data[18] |= 0x04; /* Acc event */
       manuf_data[19] |= 0x04; /* Gesture */
 
       hci_le_set_scan_resp_data(0,NULL);
@@ -407,6 +467,55 @@ fail:
       return BLE_STATUS_SUCCESS;
    }
 
+   tBleStatus AccEvent_Notify(uint16_t Command, uint8_t dimByte)
+   {
+      tBleStatus ret= BLE_STATUS_SUCCESS;
+      uint8_t buff_2[2+2];
+      uint8_t buff_3[2+3];
+
+      switch(dimByte)
+      {
+      case 2:
+         STORE_LE_16(buff_2  ,millis());
+         STORE_LE_16(buff_2+2,Command);
+         ret = aci_gatt_update_char_value(HWServW2STHandle, AccEventCharHandle, 0, 2+2,buff_2);
+         break;
+      case 3:
+         STORE_LE_16(buff_3  ,millis());
+         buff_3[2]= 0;
+         STORE_LE_16(buff_3+3,Command);
+         ret = aci_gatt_update_char_value(HWServW2STHandle, AccEventCharHandle, 0, 2+3,buff_3);
+         break;
+      }
+
+      if (ret != BLE_STATUS_SUCCESS)
+      {
+         FLIGHT1_PRINTF("Error Updating AccEvent_Notify Char\r\n");
+         return BLE_STATUS_ERROR;
+      }
+      return BLE_STATUS_SUCCESS;
+   }
+
+   tBleStatus Config_Notify(uint32_t Feature,uint8_t Command,uint8_t data)
+   {
+      tBleStatus ret;
+      uint8_t buff[2+4+1+1];
+
+      STORE_LE_16(buff  ,millis());
+      STORE_BE_32(buff+2,Feature);
+      buff[6] = Command;
+      buff[7] = data;
+
+      ret = aci_gatt_update_char_value (ConfigServW2STHandle, ConfigCharHandle, 0, 8,buff);
+      if (ret != BLE_STATUS_SUCCESS)
+      {
+         FLIGHT1_PRINTF("Error Updating Configuration Char\r\n");
+         return BLE_STATUS_ERROR;
+      }
+      return BLE_STATUS_SUCCESS;
+   }
+
+
 
    /*Public variables*/
    uint8_t set_connectable;
@@ -495,6 +604,35 @@ private:
          goto fail;
       }
 
+      COPY_ACC_EVENT_W2ST_CHAR_UUID(uuid);
+      ret =  aci_gatt_add_char(HWServW2STHandle, UUID_TYPE_128, uuid, 2+3, //2+2,
+                               CHAR_PROP_NOTIFY | CHAR_PROP_READ,
+                               ATTR_PERMISSION_NONE,
+                               GATT_NOTIFY_READ_REQ_AND_WAIT_FOR_APPL_RESP,
+                               16, 1, &AccEventCharHandle);
+
+      if (ret != BLE_STATUS_SUCCESS)
+      {
+         goto fail;
+      }
+
+
+      COPY_CONFIG_SERVICE_UUID(uuid);
+      ret = aci_gatt_add_serv(UUID_TYPE_128,  uuid, PRIMARY_SERVICE, 1+3,&ConfigServW2STHandle);
+      if (ret != BLE_STATUS_SUCCESS)
+         goto fail;
+      COPY_CONFIG_W2ST_CHAR_UUID(uuid);
+
+      ret =  aci_gatt_add_char(ConfigServW2STHandle, UUID_TYPE_128, uuid, 20 /* Max Dimension */,
+                               CHAR_PROP_NOTIFY| CHAR_PROP_WRITE_WITHOUT_RESP,
+                               ATTR_PERMISSION_NONE,
+                               GATT_NOTIFY_ATTRIBUTE_WRITE | GATT_NOTIFY_READ_REQ_AND_WAIT_FOR_APPL_RESP,
+                               16, 1, &ConfigCharHandle);
+
+      if (ret != BLE_STATUS_SUCCESS)
+      {
+         goto fail;
+      }
 
 
       return BLE_STATUS_SUCCESS;
@@ -515,11 +653,8 @@ fail:
    uint32_t ForceReCalibration    =0;
    uint32_t FirstConnectionConfig =0;
    uint16_t HWServW2STHandle;
+   uint16_t ConfigServW2STHandle;
    uint8_t  EnvironmentalCharSize=2; /* Size for Environmental BLE characteristic */
-   uint16_t EnvironmentalCharHandle;
-   uint16_t AccGyroMagCharHandle;
-   uint16_t ProxCharHandle;
-   uint16_t GestureDetCharHandle;
    uint8_t manuf_data[30] =
    {
       2  /* lenght*/,0x0A,0x00 /* 0 dBm */, // Trasmission Power
@@ -545,6 +680,286 @@ fail:
 
 Flight1Service Flight1;
 
+void enableAllFunc()
+{
+   AccGyr->Enable_Pedometer();
+#ifdef USE_IKS01A3
+   AccGyr->Enable_Tilt_Detection(LSM6DSO_INT1_PIN);
+   AccGyr->Enable_Free_Fall_Detection(LSM6DSO_INT1_PIN);
+   AccGyr->Enable_Single_Tap_Detection(LSM6DSO_INT1_PIN);
+   AccGyr->Enable_Double_Tap_Detection(LSM6DSO_INT1_PIN);
+   AccGyr->Enable_6D_Orientation(LSM6DSO_INT1_PIN);
+   AccGyr->Step_Counter_Reset();
+#elif defined (USE_IKS01A2)
+   AccGyr->Enable_Tilt_Detection();
+   AccGyr->Enable_Free_Fall_Detection();
+   AccGyr->Enable_Single_Tap_Detection();
+   AccGyr->Enable_Double_Tap_Detection();
+   AccGyr->Enable_6D_Orientation();
+   AccGyr->Reset_Step_Counter();
+#endif
+}
+
+void disableAllFunc()
+{
+   AccGyr->Disable_Pedometer();
+   AccGyr->Disable_Tilt_Detection();
+   AccGyr->Disable_Free_Fall_Detection();
+   AccGyr->Disable_Single_Tap_Detection();
+   AccGyr->Disable_Double_Tap_Detection();
+   AccGyr->Disable_6D_Orientation();
+}
+
+void ConfigCommandParsing(uint8_t * att_data, uint8_t data_length)
+{
+   uint32_t FeatureMask = (att_data[3]) | (att_data[2]<<8) | (att_data[1]<<16) | (att_data[0]<<24);
+   uint8_t Command = att_data[4];
+   uint8_t Data    = att_data[5];
+   (void)data_length;
+   FLIGHT1_PRINTF("Parsing command: ");
+   switch(FeatureMask)
+   {
+   case FEATURE_MASK_ACC_EVENTS:
+      switch(Command)
+      {
+      case 'm':
+         /* Multiple Events */
+         switch(Data)
+         {
+         case 1:
+            enableAllFunc();
+            FLIGHT1_PRINTF("Multi enabled\n");
+            Flight1.Config_Notify(FEATURE_MASK_ACC_EVENTS,Command,Data);
+            break;
+         case 0:
+            disableAllFunc();
+            FLIGHT1_PRINTF("Multi disabled\n");
+            Flight1.Config_Notify(FEATURE_MASK_ACC_EVENTS,Command,Data);
+            break;
+         }
+         break;
+      case 'f':
+         /* FreeFall */
+         switch(Data)
+         {
+         case 1:
+#ifdef USE_IKS01A3
+            AccGyr->Enable_Free_Fall_Detection(LSM6DSO_INT1_PIN);
+#elif defined(USE_IKS01A2)
+            AccGyr->Enable_Free_Fall_Detection();
+#endif
+            FLIGHT1_PRINTF("Free fall enabled\n");
+            Flight1.Config_Notify(FEATURE_MASK_ACC_EVENTS,Command,Data);
+            break;
+         case 0:
+            AccGyr->Disable_Free_Fall_Detection();
+            FLIGHT1_PRINTF("Free fall disabled\n");
+            Flight1.Config_Notify(FEATURE_MASK_ACC_EVENTS,Command,Data);
+            break;
+         }
+         break;
+      case 'd':
+         /* Double Tap */
+         switch(Data)
+         {
+         case 1:
+#ifdef USE_IKS01A3
+            AccGyr->Enable_Double_Tap_Detection(LSM6DSO_INT1_PIN);
+#elif defined(USE_IKS01A2)
+            AccGyr->Enable_Double_Tap_Detection();
+#endif
+            FLIGHT1_PRINTF("Double tap enabled\n");
+            Flight1.Config_Notify(FEATURE_MASK_ACC_EVENTS,Command,Data);
+            break;
+         case 0:
+            AccGyr->Disable_Double_Tap_Detection();
+            FLIGHT1_PRINTF("Double tap disabled\n");
+            Flight1.Config_Notify(FEATURE_MASK_ACC_EVENTS,Command,Data);
+            break;
+         }
+         break;
+      case 's':
+         /* Single Tap */
+         switch(Data)
+         {
+         case 1:
+#ifdef USE_IKS01A3
+            AccGyr->Enable_Single_Tap_Detection(LSM6DSO_INT1_PIN);
+#elif defined(USE_IKS01A2)
+            AccGyr->Enable_Single_Tap_Detection();
+#endif
+            FLIGHT1_PRINTF("Single tap enabled\n");
+            Flight1.Config_Notify(FEATURE_MASK_ACC_EVENTS,Command,Data);
+            break;
+         case 0:
+            AccGyr->Disable_Single_Tap_Detection();
+            FLIGHT1_PRINTF("Single tap disabled\n");
+            Flight1.Config_Notify(FEATURE_MASK_ACC_EVENTS,Command,Data);
+            break;
+         }
+         break;
+      case 'p':
+         /* Pedometer */
+         switch(Data)
+         {
+         case 1:
+            AccGyr->Enable_Pedometer();
+#ifdef USE_IKS01A3
+            AccGyr->Step_Counter_Reset();
+#elif defined (USE_IKS01A2)
+            AccGyr->Reset_Step_Counter();
+#endif
+            FLIGHT1_PRINTF("Pedometer enabled\n");
+            Flight1.Config_Notify(FEATURE_MASK_ACC_EVENTS,Command,Data);
+            break;
+         case 0:
+            AccGyr->Disable_Pedometer();
+            FLIGHT1_PRINTF("Pedometer disabled\n");
+            Flight1.Config_Notify(FEATURE_MASK_ACC_EVENTS,Command,Data);
+            break;
+         }
+         break;
+      case 'w':
+         /* Wake UP */
+         switch(Data)
+         {
+         case 1:
+#ifdef USE_IKS01A3
+            AccGyr->Enable_Wake_Up_Detection(LSM6DSO_INT2_PIN);
+#elif defined(USE_IKS01A2)
+            AccGyr->Enable_Wake_Up_Detection();
+#endif
+            FLIGHT1_PRINTF("Wake up enabled\n");
+            Flight1.Config_Notify(FEATURE_MASK_ACC_EVENTS,Command,Data);
+            break;
+         case 0:
+            AccGyr->Disable_Wake_Up_Detection();
+            FLIGHT1_PRINTF("Wake up disabled\n");
+            Flight1.Config_Notify(FEATURE_MASK_ACC_EVENTS,Command,Data);
+            break;
+         }
+         break;
+      case 't':
+         /* Tilt */
+         switch(Data)
+         {
+         case 1:
+#ifdef USE_IKS01A3
+            AccGyr->Enable_Tilt_Detection(LSM6DSO_INT1_PIN);
+#elif defined(USE_IKS01A2)
+            AccGyr->Enable_Tilt_Detection();
+#endif
+            FLIGHT1_PRINTF("Tilt enabled\n");
+            Flight1.Config_Notify(FEATURE_MASK_ACC_EVENTS,Command,Data);
+            break;
+         case 0:
+            AccGyr->Disable_Tilt_Detection();
+            FLIGHT1_PRINTF("Tilt disabled\n");
+            Flight1.Config_Notify(FEATURE_MASK_ACC_EVENTS,Command,Data);
+            break;
+         }
+         break;
+      case 'o' :
+         /* Tilt */
+         switch(Data)
+         {
+         case 1:
+#ifdef USE_IKS01A3
+            AccGyr->Enable_6D_Orientation(LSM6DSO_INT1_PIN);
+#elif defined(USE_IKS01A2)
+            AccGyr->Enable_6D_Orientation();
+#endif
+            FLIGHT1_PRINTF("Orientation enabled\n");
+            Flight1.Config_Notify(FEATURE_MASK_ACC_EVENTS,Command,Data);
+            break;
+         case 0:
+            AccGyr->Disable_6D_Orientation();
+            FLIGHT1_PRINTF("Orientation disabled\n");
+            Flight1.Config_Notify(FEATURE_MASK_ACC_EVENTS,Command,Data);
+            break;
+         }
+         break;
+      }
+      break;
+   }
+}
+
+
+void Attribute_Modified_CB(uint16_t attr_handle, uint8_t * att_data, uint8_t data_length)
+{
+   if(attr_handle == AccEventCharHandle + 2)
+   {
+      if (att_data[0] == 01)
+      {
+         enableAllFunc();
+         Flight1.AccEvent_Notify(0, 3);
+         Flight1.Config_Notify(FEATURE_MASK_ACC_EVENTS,'m',1);
+      }
+      else if (att_data[0] == 0)
+      {
+         disableAllFunc();
+      }
+   }
+   else if (attr_handle == ConfigCharHandle + 1)
+   {
+      /* Received one write command from Client on Configuration characteristc */
+      ConfigCommandParsing(att_data, data_length);
+   }
+   else if(attr_handle == AccGyroMagCharHandle + 2)
+   {
+      if (att_data[0] == 01)
+      {
+         AccGyroMag_Enable = 1;
+         FLIGHT1_PRINTF("Acc, Gyro and Mag enabled\n");
+      }
+      else if (att_data[0] == 0)
+      {
+         AccGyroMag_Enable = 0;
+         FLIGHT1_PRINTF("Acc, Gyro and Mag disabled\n");
+      }
+   }
+   else if(attr_handle == EnvironmentalCharHandle + 2)
+   {
+      if (att_data[0] == 01)
+      {
+         Enviroment_Enable = 1;
+         FLIGHT1_PRINTF("Enviroment enabled\n");
+      }
+      else if (att_data[0] == 0)
+      {
+         Enviroment_Enable = 0;
+         FLIGHT1_PRINTF("Enviroment disabled\n");
+      }
+   }
+   else if(attr_handle == GestureDetCharHandle + 2)
+   {
+      if (att_data[0] == 01)
+      {
+         Gestures_Enable = 1;
+         FLIGHT1_PRINTF("Gestures enabled\n");
+      }
+      else if (att_data[0] == 0)
+      {
+         Gestures_Enable = 0;
+         FLIGHT1_PRINTF("Gestures disabled\n");
+      }
+   }
+   else if (attr_handle == ProxCharHandle + 2)
+   {
+      if (att_data[0] == 01)
+      {
+         Distance_Enable = 1;
+         FLIGHT1_PRINTF("Distance enabled\n");
+      }
+      else if (att_data[0] == 0)
+      {
+         Distance_Enable = 0;
+         FLIGHT1_PRINTF("Distance disabled\n");
+      }
+   }
+}
+
+
 
 /*Callback function*/
 void Flight1_HCI_Event_CB(void *pckt)
@@ -552,7 +967,7 @@ void Flight1_HCI_Event_CB(void *pckt)
    hci_uart_pckt *hci_pckt =(hci_uart_pckt*) pckt;
    hci_event_pckt *event_pckt = (hci_event_pckt*)hci_pckt->data;
 
-   FLIGHT1_PRINTF("In Callback");
+   FLIGHT1_PRINTF("In Callback: ");
 
    if(hci_pckt->type != HCI_EVENT_PKT)
    {
@@ -567,6 +982,8 @@ void Flight1_HCI_Event_CB(void *pckt)
    {
       Flight1.connected = FALSE;
       Flight1.set_connectable = TRUE;
+      delay(100);
+      FLIGHT1_PRINTF("Disconnected\n");
    }
    break;
    case EVT_LE_META_EVENT:
@@ -578,48 +995,33 @@ void Flight1_HCI_Event_CB(void *pckt)
       /*if connected*/
       case EVT_LE_CONN_COMPLETE:
       {
-         evt_le_connection_complete *cc = (evt_le_connection_complete *)evt->data;
          Flight1.connected=TRUE;
+         disableAllFunc();
+         AccGyr->Disable_Wake_Up_Detection();
+         delay(100);
+         FLIGHT1_PRINTF("Connected\n");
       }
       break;
       }
    }
    break;
-
+   case EVT_VENDOR:
+   {
+      evt_blue_aci *blue_evt = (evt_blue_aci *)event_pckt->data;
+      if (blue_evt->ecode == EVT_BLUE_GATT_ATTRIBUTE_MODIFIED)
+      {
+         evt_gatt_attr_modified_IDB05A1 *evt = (evt_gatt_attr_modified_IDB05A1*)blue_evt->data;
+         FLIGHT1_PRINTF("Attribute modified\n");
+         Attribute_Modified_CB(evt->attr_handle, evt->att_data,evt->data_length);
+      }
+   }
+   break;
+   default:
+      FLIGHT1_PRINTF("Error\n");
+      break;
    }
 }
 
-
-// Distance components.
-STMPE1600DigiOut *xshutdown_top;
-STMPE1600DigiOut *xshutdown_left;
-STMPE1600DigiOut *xshutdown_right;
-VL53L1_X_NUCLEO_53L1A1 *sensor_vl53l1_top;
-VL53L1_X_NUCLEO_53L1A1 *sensor_vl53l1_left;
-VL53L1_X_NUCLEO_53L1A1 *sensor_vl53l1_right;
-
-
-// Gesture structure.
-Gesture_DIRSWIPE_1_Data_t gestureDirSwipeData;
-Gesture_TAP_1_Data_t gestureTapData;
-// Range values
-uint16_t distance_top, distance_left, distance_right;
-
-//MEMS sensors
-#ifdef USE_IKS01A3
-HTS221Sensor  *HumTemp;
-LPS22HHSensor  *PressTemp;
-LSM6DSOSensor *AccGyr;
-LIS2DW12Sensor *Acc2;
-LIS2MDLSensor *Mag;
-STTS751Sensor *Temp;
-#elif defined (USE_IKS01A2)
-HTS221Sensor  *HumTemp;
-LPS22HBSensor  *PressTemp;
-LSM6DSLSensor *AccGyr;
-LSM303AGR_ACC_Sensor *Acc2;
-LSM303AGR_MAG_Sensor *Mag;
-#endif
 
 
 /*Setup distance sensors for gesture detection*/
@@ -634,11 +1036,11 @@ void SetupSingleShot(VL53L1_X_NUCLEO_53L1A1 *sensor)
       SerialPort.println("SetDistanceMode failed");
    }
 
-   //Change timing budget again to 15 ms
+   //Change timing budget to 20 ms
    status = sensor->VL53L1X_SetTimingBudgetInMs(20);
    if( status )
    {
-      SerialPort.println("SetMeasurementTimingBudgetMicroSeconds 2 failed");
+      SerialPort.println("SetMeasurementTimingBudgetMicroSeconds failed");
    }
    status = sensor->VL53L1X_SetInterMeasurementInMs(20);
    if( status )
@@ -648,16 +1050,26 @@ void SetupSingleShot(VL53L1_X_NUCLEO_53L1A1 *sensor)
 
 }
 
+void INT1Event_cb()
+{
+   mems_event = 1;
+}
+
+void INT2Event_cb()
+{
+   mems_event = 1;
+}
 
 void setup()
 {
-   int status;
    SerialPort.begin(115200);
    DEV_I2C.begin();
 
    pinMode(LED_BUILTIN, OUTPUT); //D13 LED
 
-   int ret;
+   //Interrupts.
+   attachInterrupt(INT_1, INT1Event_cb, RISING);
+   attachInterrupt(INT_2, INT2Event_cb, RISING);
 
    //Initialize bluetooth communication
    if(BTLE.begin() == SPBTLERF_ERROR)
@@ -738,6 +1150,7 @@ void setup()
    HumTemp->Enable();
    PressTemp->Enable();
    AccGyr->Enable_X();
+   AccGyr->Set_X_ODR(4.0f);
    AccGyr->Enable_G();
    Mag->Enable();
 }
@@ -766,182 +1179,296 @@ void loop()
    {
       //Get enviroment data
       float humidity, temperature, pressure;
-      HumTemp->GetHumidity(&humidity);
+      if (Enviroment_Enable)
+      {
+         HumTemp->GetHumidity(&humidity);
 #ifdef USE_IKS01A3
-      Temp->GetTemperature(&temperature);
+         Temp->GetTemperature(&temperature);
 #elif defined (USE_IKS01A2)
-      HumTemp->GetTemperature(&temperature);
+         HumTemp->GetTemperature(&temperature);
 #endif
-      PressTemp->GetPressure(&pressure);
-      MCR_BLUEMS_F2I_2D(pressure, intPart, decPart);
-      PressToSend=intPart*100+decPart;
-      MCR_BLUEMS_F2I_1D(humidity, intPart, decPart);
-      HumToSend = intPart*10+decPart;
-      MCR_BLUEMS_F2I_1D(temperature, intPart, decPart);
-      TempToSend = intPart*10+decPart;
+         PressTemp->GetPressure(&pressure);
+         MCR_BLUEMS_F2I_2D(pressure, intPart, decPart);
+         PressToSend=intPart*100+decPart;
+         MCR_BLUEMS_F2I_1D(humidity, intPart, decPart);
+         HumToSend = intPart*10+decPart;
+         MCR_BLUEMS_F2I_1D(temperature, intPart, decPart);
+         TempToSend = intPart*10+decPart;
+      }
 
-      // Read accelerometer and gyroscope.
       int32_t accelerometer[3];
       int32_t gyroscope[3];
-      AccGyr->Get_X_Axes(accelerometer);
-      AccGyr->Get_G_Axes(gyroscope);
 
-      FLIGHT1_PRINTF("Accelerometer:\tX:%d\tY:%d\tZ:%d\n", accelerometer[0], accelerometer[1], accelerometer[2]);
-      FLIGHT1_PRINTF("Gyroscope:\tX:%d\tY:%d\tZ:%d\n", gyroscope[0], gyroscope[1], gyroscope[2]);
-
-      //Get top sensor distance and transmit
-      do
+      if (AccGyroMag_Enable)
       {
-         sensor_vl53l1_top->VL53L1X_CheckForDataReady(&ready);
-      }
-      while (!ready);
-
-      status = sensor_vl53l1_top->VL53L1X_GetRangeStatus(&RangeStatus);
-      status = sensor_vl53l1_top->VL53L1X_GetDistance(&distance);
-
-      if (status == VL53L1_ERROR_NONE)
-      {
-         Flight1.FlightSense_Distance_Update(distance);
+         // Read accelerometer and gyroscope.
+         AccGyr->Get_X_Axes(accelerometer);
+         AccGyr->Get_G_Axes(gyroscope);
       }
 
-      //Clear interrupt
-      status = sensor_vl53l1_top->VL53L1X_ClearInterrupt();
+      //FLIGHT1_PRINTF("Accelerometer:\tX:%d\tY:%d\tZ:%d\n", accelerometer[0], accelerometer[1], accelerometer[2]);
+      //FLIGHT1_PRINTF("Gyroscope:\tX:%d\tY:%d\tZ:%d\n", gyroscope[0], gyroscope[1], gyroscope[2]);
 
-      distance = (RangeStatus == 0 && distance<1400) ? distance : 1400;
-
-      // Launch gesture detection algorithm.
-      gesture_code = tof_gestures_detectTAP_1(distance, &gestureTapData);
-
-      // Check the result of the gesture detection algorithm.
-      switch(gesture_code)
+      if (mems_event)
       {
-      case GESTURES_SINGLE_TAP:
-         Flight1.Gestures_Update(1);
-         break;
-      default:
-         // Do nothing
-         break;
-      }
-
-
-      //wait for data ready
-      do
-      {
-         //if left not done
-         if(left_done == 0)
+         mems_event=0;
+#ifdef USE_IKS01A3
+         LSM6DSO_Event_Status_t Astatus;
+         AccGyr->Get_X_Event_Status(&Astatus);
+#elif defined(USE_IKS01A2)
+         LSM6DSL_Event_Status_t Astatus;
+         AccGyr->Get_Event_Status(&Astatus);
+#endif
+         if (Astatus.StepStatus)
          {
-            NewDataReady = 0;
-            //check measurement data ready
-            int status = sensor_vl53l1_left->VL53L1X_CheckForDataReady(&NewDataReady);
-
-            if( status )
-            {
-               SerialPort.println("GetMeasurementDataReady left sensor failed");
-            }
-            //if ready
-            if(NewDataReady)
-            {
-               //get status
-               status = sensor_vl53l1_left->VL53L1X_GetRangeStatus(&RangeStatus);
-               if( status )
-               {
-                  SerialPort.println("GetRangeStatus left sensor failed");
-               }
-
-               //if distance < 1.3 m
-               if (RangeStatus != 4)
-               {
-                  // we have a valid range.
-                  status = sensor_vl53l1_left->VL53L1X_GetDistance(&distance_left);
-                  if( status )
-                  {
-                     SerialPort.println("GetDistance left sensor failed");
-                  }
-               }
-               else
-               {
-                  distance_left = 1400;   //default distance
-               }
-
-               //restart measurement
-               status = sensor_vl53l1_left->VL53L1X_ClearInterrupt();
-               if( status )
-               {
-                  SerialPort.println("Restart left sensor failed");
-               }
-
-               left_done = 1 ;
-            }
+            // New step detected, so print the step counter
+            uint16_t step_count = 0;
+#ifdef USE_IKS01A3
+            AccGyr->Get_Step_Count(&step_count);
+#elif defined(USE_IKS01A2)
+            AccGyr->Get_Step_Counter(&step_count);
+#endif
+            FLIGHT1_PRINTF("Step %d\n", step_count);
+            Flight1.AccEvent_Notify(step_count, 3);
+         }
+         if (Astatus.FreeFallStatus)
+         {
+            FLIGHT1_PRINTF("Free fall\n");
+            Flight1.AccEvent_Notify(16, 2);
          }
 
-         //if right not done
-         if(right_done == 0)
+         if (Astatus.TapStatus)
          {
-            NewDataReady = 0;
-            //check measurement data ready
-            int status = sensor_vl53l1_right->VL53L1X_CheckForDataReady(&NewDataReady);
+            FLIGHT1_PRINTF("Single tap\n");
+            Flight1.AccEvent_Notify(32, 2);
+         }
 
-            if( status )
+         if (Astatus.DoubleTapStatus)
+         {
+            FLIGHT1_PRINTF("Double tap\n");
+            Flight1.AccEvent_Notify(64, 2);
+         }
+
+         if (Astatus.TiltStatus)
+         {
+            FLIGHT1_PRINTF("Tilt\n");
+            Flight1.AccEvent_Notify(8, 2);
+         }
+
+         if (Astatus.D6DOrientationStatus)
+         {
+            FLIGHT1_PRINTF("6D Interrupt\n");
+            uint8_t xl = 0;
+            uint8_t xh = 0;
+            uint8_t yl = 0;
+            uint8_t yh = 0;
+            uint8_t zl = 0;
+            uint8_t zh = 0;
+            uint8_t OrientationResult = 0;
+            AccGyr->Get_6D_Orientation_XL(&xl);
+            AccGyr->Get_6D_Orientation_XH(&xh);
+            AccGyr->Get_6D_Orientation_YL(&yl);
+            AccGyr->Get_6D_Orientation_YH(&yh);
+            AccGyr->Get_6D_Orientation_ZL(&zl);
+            AccGyr->Get_6D_Orientation_ZH(&zh);
+            if ( xl == 0 && yl == 0 && zl == 0 && xh == 0 && yh == 1 && zh == 0 )
             {
-               SerialPort.println("GetMeasurementDataReady right sensor failed");
+               OrientationResult = 4;
             }
-            //if ready
-            if(NewDataReady)
+            else if ( xl == 1 && yl == 0 && zl == 0 && xh == 0 && yh == 0 && zh == 0 )
             {
-               //get status
-               status = sensor_vl53l1_right->VL53L1X_GetRangeStatus(&RangeStatus);
-               if( status )
-               {
-                  SerialPort.println("GetRangeStatus right sensor failed");
-               }
-               //if distance < 1.3 m
-               if (RangeStatus != 4)
-               {
-                  // we have a valid range.
-                  status = sensor_vl53l1_right->VL53L1X_GetDistance(&distance_right);
-                  if( status )
-                  {
-                     SerialPort.println("GetDistance right sensor failed");
-                  }
-               }
-               else
-               {
-                  distance_right = 1400;   //default distance
-               }
-
-               //restart measurement
-               status = sensor_vl53l1_right->VL53L1X_ClearInterrupt();
-               if( status )
-               {
-                  SerialPort.println("Restart right sensor failed");
-               }
-
-               right_done = 1 ;
+               OrientationResult = 1;
             }
+            else if ( xl == 0 && yl == 0 && zl == 0 && xh == 1 && yh == 0 && zh == 0 )
+            {
+               OrientationResult = 3;
+            }
+            else if ( xl == 0 && yl == 1 && zl == 0 && xh == 0 && yh == 0 && zh == 0 )
+            {
+               OrientationResult = 2;
+            }
+            else if ( xl == 0 && yl == 0 && zl == 0 && xh == 0 && yh == 0 && zh == 1 )
+            {
+               OrientationResult = 5;
+            }
+            else if ( xl == 0 && yl == 0 && zl == 1 && xh == 0 && yh == 0 && zh == 0 )
+            {
+               OrientationResult = 6;
+            }
+            Flight1.AccEvent_Notify(OrientationResult, 2);
+         }
+
+         if (Astatus.WakeUpStatus)
+         {
+            FLIGHT1_PRINTF("Wake Up\n");
+            Flight1.AccEvent_Notify(128, 2);
          }
       }
-      while(left_done == 0 || right_done == 0);
 
-
-      // Launch gesture detection algorithm.
-      gesture_code = tof_gestures_detectDIRSWIPE_1(distance_left, distance_right, &gestureDirSwipeData);
-
-      // Check the result of the gesture detection algorithm.
-      switch(gesture_code)
+      if (Distance_Enable || Gestures_Enable)
       {
-      case GESTURES_SWIPE_LEFT_RIGHT:
-         Flight1.Gestures_Update(3);
-         break;
-      case GESTURES_SWIPE_RIGHT_LEFT:
-         Flight1.Gestures_Update(2);
-         break;
-      default:
-         // Do nothing
-         break;
+         //Get top sensor distance and transmit
+         do
+         {
+            sensor_vl53l1_top->VL53L1X_CheckForDataReady(&ready);
+         }
+         while (!ready);
+
+         status = sensor_vl53l1_top->VL53L1X_GetRangeStatus(&RangeStatus);
+         status = sensor_vl53l1_top->VL53L1X_GetDistance(&distance);
+
+         if (status == VL53L1_ERROR_NONE && Distance_Enable)
+         {
+            Flight1.FlightSense_Distance_Update(distance);
+         }
+
+         //Clear interrupt
+         status = sensor_vl53l1_top->VL53L1X_ClearInterrupt();
+
+         distance = (RangeStatus == 0 && distance<1400) ? distance : 1400;
+
+         // Launch gesture detection algorithm.
+         gesture_code = tof_gestures_detectTAP_1(distance, &gestureTapData);
+
+         // Check the result of the gesture detection algorithm.
+         switch(gesture_code)
+         {
+         case GESTURES_SINGLE_TAP:
+            Flight1.Gestures_Update(1);
+            break;
+         default:
+            // Do nothing
+            break;
+         }
+
+
+         //wait for data ready
+         do
+         {
+            //if left not done
+            if(left_done == 0)
+            {
+               NewDataReady = 0;
+               //check measurement data ready
+               int status = sensor_vl53l1_left->VL53L1X_CheckForDataReady(&NewDataReady);
+
+               if( status )
+               {
+                  SerialPort.println("GetMeasurementDataReady left sensor failed");
+               }
+               //if ready
+               if(NewDataReady)
+               {
+                  //get status
+                  status = sensor_vl53l1_left->VL53L1X_GetRangeStatus(&RangeStatus);
+                  if( status )
+                  {
+                     SerialPort.println("GetRangeStatus left sensor failed");
+                  }
+
+                  //if distance < 1.3 m
+                  if (RangeStatus != 4)
+                  {
+                     // we have a valid range.
+                     status = sensor_vl53l1_left->VL53L1X_GetDistance(&distance_left);
+                     if( status )
+                     {
+                        SerialPort.println("GetDistance left sensor failed");
+                     }
+                  }
+                  else
+                  {
+                     distance_left = 1400;   //default distance
+                  }
+
+                  //restart measurement
+                  status = sensor_vl53l1_left->VL53L1X_ClearInterrupt();
+                  if( status )
+                  {
+                     SerialPort.println("Restart left sensor failed");
+                  }
+
+                  left_done = 1 ;
+               }
+            }
+
+            //if right not done
+            if(right_done == 0)
+            {
+               NewDataReady = 0;
+               //check measurement data ready
+               int status = sensor_vl53l1_right->VL53L1X_CheckForDataReady(&NewDataReady);
+
+               if( status )
+               {
+                  SerialPort.println("GetMeasurementDataReady right sensor failed");
+               }
+               //if ready
+               if(NewDataReady)
+               {
+                  //get status
+                  status = sensor_vl53l1_right->VL53L1X_GetRangeStatus(&RangeStatus);
+                  if( status )
+                  {
+                     SerialPort.println("GetRangeStatus right sensor failed");
+                  }
+                  //if distance < 1.3 m
+                  if (RangeStatus != 4)
+                  {
+                     // we have a valid range.
+                     status = sensor_vl53l1_right->VL53L1X_GetDistance(&distance_right);
+                     if( status )
+                     {
+                        SerialPort.println("GetDistance right sensor failed");
+                     }
+                  }
+                  else
+                  {
+                     distance_right = 1400;   //default distance
+                  }
+
+                  //restart measurement
+                  status = sensor_vl53l1_right->VL53L1X_ClearInterrupt();
+                  if( status )
+                  {
+                     SerialPort.println("Restart right sensor failed");
+                  }
+
+                  right_done = 1 ;
+               }
+            }
+         }
+         while(left_done == 0 || right_done == 0);
+
+
+         // Launch gesture detection algorithm.
+         gesture_code = tof_gestures_detectDIRSWIPE_1(distance_left, distance_right, &gestureDirSwipeData);
+
+         // Check the result of the gesture detection algorithm.
+         switch(gesture_code)
+         {
+         case GESTURES_SWIPE_LEFT_RIGHT:
+            Flight1.Gestures_Update(3);
+            break;
+         case GESTURES_SWIPE_RIGHT_LEFT:
+            Flight1.Gestures_Update(2);
+            break;
+         default:
+            // Do nothing
+            break;
+         }
       }
 
       //Send all mems sensors data
-      Flight1.Environmental_Update(PressToSend, HumToSend, TempToSend);
-      Flight1.AccGyroMag_Update(accelerometer, gyroscope);
+      if (Enviroment_Enable)
+      {
+         Flight1.Environmental_Update(PressToSend, HumToSend, TempToSend);
+         delay(30);
+      }
+      if (AccGyroMag_Enable)
+      {
+         Flight1.AccGyroMag_Update(accelerometer, gyroscope);
+         delay(30);
+      }
    }
 }
