@@ -30,6 +30,7 @@ with a X-NUCLEO-IKS01A3 and one among X-NUCLEO-S2868A1, X-NUCLEO-S2868A2 and X-N
 provided by the X-NUCLEO-IKS01A3 between two NUCLEO boards connected each other through S2-LP based Expansion Boards; in order to send the sensor data 
 you just need to push the button of the NUCLEO board; in order to see the received sensor data you just need to open a hyperterminal connected to 
 the Virtual COM port of the Nucleo board; the LED of the NUCLEO board will blink after every successful transmission or reception.
+* X_NUCLEO_IKS02A1_Audio_Button: This application provides a simple example of recording audio from a X-NUCLEO-IKS02A1, converting from PDM to PCM, then saving it as a wave file to an SD Card. 
 
 ## Dependencies
 
@@ -58,7 +59,7 @@ The FP_Examples library requires the following STM32duino libraries (link to the
 * STM32duino STTS751: https://github.com/stm32duino/STTS751
 * STM32duino S2-LP: https://github.com/stm32duino/S2-LP
 * STM32duino M95640-R: https://github.com/stm32duino/M95640-R
-
+* STM32duino X-NUCLEO-IKS02A1 Audio: https://github.com/stm32duino/X-NUCLEO-IKS02A1-Audio
 
 ## Documentation
 
@@ -82,7 +83,7 @@ The datasheets of the several components are available at
  * https://www.st.com/content/st_com/en/products/mems-and-sensors/temperature-sensors/stts751.html
  * https://www.st.com/content/st_com/en/products/wireless-transceivers-mcus-and-modules/sub-1ghz-rf/s2-lp.html
  * https://www.st.com/content/st_com/en/products/memories/serial-eeprom/standard-serial-eeprom/standard-spi-eeprom/m95640-r.html
-
+ * https://www.st.com/content/st_com/en/products/ecosystems/stm32-open-development-environment/stm32-nucleo-expansion-boards/stm32-ode-sense-hw/x-nucleo-iks02a1.html
 
 
 
