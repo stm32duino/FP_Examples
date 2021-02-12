@@ -266,21 +266,24 @@ void setup() {
   
   // Create VL53L0X top component.
   xshutdown_top = new STMPE1600DigiOut(&DEV_I2C, GPIO_15, (0x42 * 2));
-  sensor_vl53l0x_top = new VL53L0X_X_NUCLEO_53L0A1(&DEV_I2C, xshutdown_top, A2);
+  sensor_vl53l0x_top = new VL53L0X_X_NUCLEO_53L0A1(&DEV_I2C, xshutdown_top);
+  sensor_vl53l0x_top->begin();
 
   // Switch off VL53L0X top component.
   sensor_vl53l0x_top->VL53L0X_Off();
   
   // Create VL53L0X left component.
   xshutdown_left = new STMPE1600DigiOut(&DEV_I2C, GPIO_14, (0x43 * 2));
-  sensor_vl53l0x_left = new VL53L0X_X_NUCLEO_53L0A1(&DEV_I2C, xshutdown_left, D8);
+  sensor_vl53l0x_left = new VL53L0X_X_NUCLEO_53L0A1(&DEV_I2C, xshutdown_left);
+  sensor_vl53l0x_left->begin();
 
   // Switch off VL53L0X left component.
   sensor_vl53l0x_left->VL53L0X_Off();
   
   // Create VL53L0X right component.
   xshutdown_right = new STMPE1600DigiOut(&DEV_I2C, GPIO_15, (0x43 * 2));
-  sensor_vl53l0x_right = new VL53L0X_X_NUCLEO_53L0A1(&DEV_I2C, xshutdown_right, D2);
+  sensor_vl53l0x_right = new VL53L0X_X_NUCLEO_53L0A1(&DEV_I2C, xshutdown_right);
+  sensor_vl53l0x_right->begin();
 
   // Switch off VL53L0X right component.
   sensor_vl53l0x_right->VL53L0X_Off();
