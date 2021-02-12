@@ -586,21 +586,24 @@ void setup() {
 
   // Create VL6180X top component.
   gpio0_top = new STMPE1600DigiOut(&DEV_I2C, GPIO_12);
-  sensor_vl6180x_top = new VL6180X_X_NUCLEO_6180XA1(&DEV_I2C, gpio0_top, 0);
+  sensor_vl6180x_top = new VL6180X_X_NUCLEO_6180XA1(&DEV_I2C, gpio0_top);
+  sensor_vl6180x_top->begin();
   
   // Switch off VL6180X top component.
   sensor_vl6180x_top->VL6180x_Off();
   
   // Create (if present) VL6180X left component.
   gpio0_left = new STMPE1600DigiOut(&DEV_I2C, GPIO_14);
-  sensor_vl6180x_left = new VL6180X_X_NUCLEO_6180XA1(&DEV_I2C, gpio0_left, 0);
+  sensor_vl6180x_left = new VL6180X_X_NUCLEO_6180XA1(&DEV_I2C, gpio0_left);
+  sensor_vl6180x_left->begin();
   
   // Switch off (if present) VL6180X left component.
   sensor_vl6180x_left->VL6180x_Off();
   
   // Create (if present) VL6180X right component.
   gpio0_right = new STMPE1600DigiOut(&DEV_I2C, GPIO_15);
-  sensor_vl6180x_right = new VL6180X_X_NUCLEO_6180XA1(&DEV_I2C, gpio0_right, 0);
+  sensor_vl6180x_right = new VL6180X_X_NUCLEO_6180XA1(&DEV_I2C, gpio0_right);
+  sensor_vl6180x_right->begin();
   
   // Switch off (if present) VL6180X right component.
   sensor_vl6180x_right->VL6180x_Off();
