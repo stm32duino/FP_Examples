@@ -159,6 +159,7 @@ void setup() {
 
   /* Initializing Accelerometer-Gyroscope component. */
   acc_gyr = new LSM6DSLSensor(&DEV_I2C);
+  acc_gyr->begin();
   acc_gyr->Enable_X();
 
   /* Initializing SPI bus. */
