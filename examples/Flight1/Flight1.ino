@@ -183,9 +183,9 @@ uint16_t GestureDetCharHandle;
 STMPE1600DigiOut *xshutdown_top;
 STMPE1600DigiOut *xshutdown_left;
 STMPE1600DigiOut *xshutdown_right;
-VL53L1_X_NUCLEO_53L1A1 *sensor_vl53l1_top;
-VL53L1_X_NUCLEO_53L1A1 *sensor_vl53l1_left;
-VL53L1_X_NUCLEO_53L1A1 *sensor_vl53l1_right;
+VL53L1X_X_NUCLEO_53L1A1 *sensor_vl53l1_top;
+VL53L1X_X_NUCLEO_53L1A1 *sensor_vl53l1_left;
+VL53L1X_X_NUCLEO_53L1A1 *sensor_vl53l1_right;
 
 
 // Gesture structure.
@@ -1025,7 +1025,7 @@ void Flight1_HCI_Event_CB(void *pckt)
 
 
 /*Setup distance sensors for gesture detection*/
-void SetupSingleShot(VL53L1_X_NUCLEO_53L1A1 *sensor)
+void SetupSingleShot(VL53L1X_X_NUCLEO_53L1A1 *sensor)
 {
    int status;
 
@@ -1087,27 +1087,27 @@ void setup()
 
    // Create VL53L1X top component.
    xshutdown_top = new STMPE1600DigiOut(&DEV_I2C, GPIO_15, (0x42 * 2));
-   sensor_vl53l1_top = new VL53L1_X_NUCLEO_53L1A1(&DEV_I2C, xshutdown_top);
+   sensor_vl53l1_top = new VL53L1X_X_NUCLEO_53L1A1(&DEV_I2C, xshutdown_top);
    sensor_vl53l1_top->begin();
 
    // Switch off VL53L1X top component.
-   sensor_vl53l1_top->VL53L1_Off();
+   sensor_vl53l1_top->VL53L1X_Off();
 
    // Create (if present) VL53L1X left component.
    xshutdown_left = new STMPE1600DigiOut(&DEV_I2C, GPIO_14, (0x43 * 2));
-   sensor_vl53l1_left = new VL53L1_X_NUCLEO_53L1A1(&DEV_I2C, xshutdown_left);
+   sensor_vl53l1_left = new VL53L1X_X_NUCLEO_53L1A1(&DEV_I2C, xshutdown_left);
    sensor_vl53l1_left->begin();
 
    //Switch off (if present) VL53L1X left component.
-   sensor_vl53l1_left->VL53L1_Off();
+   sensor_vl53l1_left->VL53L1X_Off();
 
    // Create (if present) VL53L1X right component.
    xshutdown_right = new STMPE1600DigiOut(&DEV_I2C, GPIO_15, (0x43 * 2));
-   sensor_vl53l1_right = new VL53L1_X_NUCLEO_53L1A1(&DEV_I2C, xshutdown_right);
+   sensor_vl53l1_right = new VL53L1X_X_NUCLEO_53L1A1(&DEV_I2C, xshutdown_right);
    sensor_vl53l1_right->begin();
 
    // Switch off (if present) VL53L1X right component.
-   sensor_vl53l1_right->VL53L1_Off();
+   sensor_vl53l1_right->VL53L1X_Off();
 
    //Initialize the sensor
    sensor_vl53l1_top->InitSensor(0x10);
@@ -1327,7 +1327,7 @@ void loop()
          status = sensor_vl53l1_top->VL53L1X_GetRangeStatus(&RangeStatus);
          status = sensor_vl53l1_top->VL53L1X_GetDistance(&distance);
 
-         if (status == VL53L1_ERROR_NONE && Distance_Enable)
+         if (status == VL53L1X_ERROR_NONE && Distance_Enable)
          {
             Flight1.FlightSense_Distance_Update(distance);
          }
