@@ -1087,21 +1087,24 @@ void setup()
 
    // Create VL53L1X top component.
    xshutdown_top = new STMPE1600DigiOut(&DEV_I2C, GPIO_15, (0x42 * 2));
-   sensor_vl53l1_top = new VL53L1_X_NUCLEO_53L1A1(&DEV_I2C, xshutdown_top, A2);
+   sensor_vl53l1_top = new VL53L1_X_NUCLEO_53L1A1(&DEV_I2C, xshutdown_top);
+   sensor_vl53l1_top->begin();
 
    // Switch off VL53L1X top component.
    sensor_vl53l1_top->VL53L1_Off();
 
    // Create (if present) VL53L1X left component.
    xshutdown_left = new STMPE1600DigiOut(&DEV_I2C, GPIO_14, (0x43 * 2));
-   sensor_vl53l1_left = new VL53L1_X_NUCLEO_53L1A1(&DEV_I2C, xshutdown_left, D8);
+   sensor_vl53l1_left = new VL53L1_X_NUCLEO_53L1A1(&DEV_I2C, xshutdown_left);
+   sensor_vl53l1_left->begin();
 
    //Switch off (if present) VL53L1X left component.
    sensor_vl53l1_left->VL53L1_Off();
 
    // Create (if present) VL53L1X right component.
    xshutdown_right = new STMPE1600DigiOut(&DEV_I2C, GPIO_15, (0x43 * 2));
-   sensor_vl53l1_right = new VL53L1_X_NUCLEO_53L1A1(&DEV_I2C, xshutdown_right, D2);
+   sensor_vl53l1_right = new VL53L1_X_NUCLEO_53L1A1(&DEV_I2C, xshutdown_right);
+   sensor_vl53l1_right->begin();
 
    // Switch off (if present) VL53L1X right component.
    sensor_vl53l1_right->VL53L1_Off();
@@ -1137,7 +1140,9 @@ void setup()
    Acc2 = new LIS2DW12Sensor(&DEV_I2C);
    Mag = new LIS2MDLSensor(&DEV_I2C);
    Temp = new STTS751Sensor(&DEV_I2C);
+   Temp->begin();
    Temp->Enable();
+   Acc2->begin();
    Acc2->Enable_X();
 #elif defined (USE_IKS01A2)
    HumTemp  = new HTS221Sensor (&DEV_I2C);
@@ -1145,13 +1150,18 @@ void setup()
    AccGyr = new LSM6DSLSensor(&DEV_I2C);
    Acc2 = new LSM303AGR_ACC_Sensor(&DEV_I2C);
    Mag = new LSM303AGR_MAG_Sensor(&DEV_I2C);
+   Acc2->begin();
    Acc2->Enable();
 #endif
+   HumTemp->begin();
    HumTemp->Enable();
+   PressTemp->begin();
    PressTemp->Enable();
+   AccGyr->begin();
    AccGyr->Enable_X();
    AccGyr->Set_X_ODR(4.0f);
    AccGyr->Enable_G();
+   Mag->begin();
    Mag->Enable();
 }
 
