@@ -114,17 +114,23 @@ void setup() {
   devSPI->begin();
 
   AccGyr = new LSM6DSOSensor (&DEV_I2C);
+  AccGyr->begin();
   AccGyr->Enable_X();
   AccGyr->Enable_G();
   Acc2 = new LIS2DW12Sensor (&DEV_I2C);
+  Acc2->begin();
   Acc2->Enable_X();
   Mag = new LIS2MDLSensor (&DEV_I2C);
+  Mag->begin();
   Mag->Enable();
   PressTemp = new LPS22HHSensor(&DEV_I2C);
+  PressTemp->begin();
   PressTemp->Enable();
   HumTemp = new HTS221Sensor (&DEV_I2C);
+  HumTemp->begin();
   HumTemp->Enable();
   Temp3 = new STTS751Sensor (&DEV_I2C);
+  Temp3->begin();
   Temp3->Enable();
 
   // Initialize M95640-R
