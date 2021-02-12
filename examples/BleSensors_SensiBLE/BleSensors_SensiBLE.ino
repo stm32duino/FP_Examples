@@ -122,15 +122,18 @@ void setup() {
 
   // Initlialize Components.
   AccGyr = new LSM6DS3Sensor(&DEV_I2C, LSM6DS3_ACC_GYRO_I2C_ADDRESS_LOW);
+  AccGyr->begin();
   AccGyr->Enable_X();
   AccGyr->Enable_G(); 
   SerialPort.println("Init Acc&Gyr");
 
   HumTemp = new HTS221Sensor (&DEV_I2C);
+  HumTemp->begin();
   HumTemp->Enable(); 
   SerialPort.println("Init Hum&Temp");
 
   PressTemp = new LPS25HBSensor (&DEV_I2C);
+  PressTemp->begin();
   PressTemp->Enable();
   SerialPort.println("Init Pressure&Temp");
 }
