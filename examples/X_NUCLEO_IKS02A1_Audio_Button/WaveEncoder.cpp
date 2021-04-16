@@ -1,6 +1,6 @@
 /* Includes ------------------------------------------------------------------------*/
 #include <WaveEncoder.h>
-#include <String.h>
+#include <string.h>
 
 /* Class Implementation -----------------------------------------------------------------------------*/
 /* Constructor */
