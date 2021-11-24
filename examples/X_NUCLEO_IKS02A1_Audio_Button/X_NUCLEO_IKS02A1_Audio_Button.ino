@@ -6,7 +6,6 @@
 #endif
 
 #include "Arduino.h"
-#include "app_config.h"
 #include "PDM.h"
 #include "pdm2pcm.h"
 #include "WaveEncoder.h"
