@@ -1,41 +1,41 @@
 /**
  ******************************************************************************
- * @file    Flight2.ino
- * @author  STMicroelectronics
- * @version V1.0.0
- * @date    15 March 2023
- * @brief   Arduino demo application for the STMicrolectronics
- *          X-NUCLEO-IKS01A3, X-NUCLEO-53L1A1
- *          and X-NUCLEO-IDB05A1
+   @file    Flight2.ino
+   @author  STMicroelectronics
+   @version V1.0.0
+   @date    15 March 2023
+   @brief   Arduino demo application for the STMicrolectronics
+            X-NUCLEO-IKS01A3, X-NUCLEO-53L1A1
+            and X-NUCLEO-IDB05A1
  ******************************************************************************
- * @attention
- *
- * <h2><center>&copy; COPYRIGHT(c) 2023 STMicroelectronics</center></h2>
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- *   1. Redistributions of source code must retain the above copyright notice,
- *      this list of conditions and the following disclaimer.
- *   2. Redistributions in binary form must reproduce the above copyright notice,
- *      this list of conditions and the following disclaimer in the documentation
- *      and/or other materials provided with the distribution.
- *   3. Neither the name of STMicroelectronics nor the names of its contributors
- *      may be used to endorse or promote products derived from this software
- *      without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
+   @attention
+
+   <h2><center>&copy; COPYRIGHT(c) 2023 STMicroelectronics</center></h2>
+
+   Redistribution and use in source and binary forms, with or without modification,
+   are permitted provided that the following conditions are met:
+     1. Redistributions of source code must retain the above copyright notice,
+        this list of conditions and the following disclaimer.
+     2. Redistributions in binary form must reproduce the above copyright notice,
+        this list of conditions and the following disclaimer in the documentation
+        and/or other materials provided with the distribution.
+     3. Neither the name of STMicroelectronics nor the names of its contributors
+        may be used to endorse or promote products derived from this software
+        without specific prior written permission.
+
+   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+   DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+   FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+   DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+   SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+   CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+   OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
  ******************************************************************************
- */
+*/
 
 // Note: make sure your STM32duinoBLE is updated to the latest version!
 
@@ -69,78 +69,78 @@
 
 // BLE boards
 #if defined(ARDUINO_STEVAL_MKBOXPRO)
-  /* STEVAL-MKBOXPRO */
-  SPIClass SpiHCI(PA7, PA6, PA5);
-  HCISpiTransportClass HCISpiTransport(SpiHCI, BLUENRG_LP, PA2, PB11, PD4, 1000000, SPI_MODE3);
-  #if !defined(FAKE_BLELOCALDEVICE)
-    BLELocalDevice BLEObj(&HCISpiTransport);
-    BLELocalDevice &BLE = BLEObj;
-  #endif
+/* STEVAL-MKBOXPRO */
+SPIClass SpiHCI(PA7, PA6, PA5);
+HCISpiTransportClass HCISpiTransport(SpiHCI, BLUENRG_LP, PA2, PB11, PD4, 1000000, SPI_MODE3);
+#if !defined(FAKE_BLELOCALDEVICE)
+BLELocalDevice BLEObj(&HCISpiTransport);
+BLELocalDevice &BLE = BLEObj;
+#endif
 #elif defined(ARDUINO_STEVAL_MKSBOX1V1)
-  /* STEVAL-MKSBOX1V1 */
-  SPIClass SpiHCI(PC3, PD3, PD1);
-  HCISpiTransportClass HCISpiTransport(SpiHCI, SPBTLE_1S, PD0, PD4, PA8, 1000000, SPI_MODE1);
-  #if !defined(FAKE_BLELOCALDEVICE)
-    BLELocalDevice BLEObj(&HCISpiTransport);
-    BLELocalDevice &BLE = BLEObj;
-  #endif
+/* STEVAL-MKSBOX1V1 */
+SPIClass SpiHCI(PC3, PD3, PD1);
+HCISpiTransportClass HCISpiTransport(SpiHCI, SPBTLE_1S, PD0, PD4, PA8, 1000000, SPI_MODE1);
+#if !defined(FAKE_BLELOCALDEVICE)
+BLELocalDevice BLEObj(&HCISpiTransport);
+BLELocalDevice &BLE = BLEObj;
+#endif
 #elif defined(ARDUINO_B_L475E_IOT01A) || defined(ARDUINO_B_L4S5I_IOT01A)
-  /* B-L475E-IOT01A1 or B_L4S5I_IOT01A */
-  SPIClass SpiHCI(PC12, PC11, PC10);
-  HCISpiTransportClass HCISpiTransport(SpiHCI, SPBTLE_RF, PD13, PE6, PA8, 8000000, SPI_MODE0);
-  #if !defined(FAKE_BLELOCALDEVICE)
-    BLELocalDevice BLEObj(&HCISpiTransport);
-    BLELocalDevice &BLE = BLEObj;
-  #endif
+/* B-L475E-IOT01A1 or B_L4S5I_IOT01A */
+SPIClass SpiHCI(PC12, PC11, PC10);
+HCISpiTransportClass HCISpiTransport(SpiHCI, SPBTLE_RF, PD13, PE6, PA8, 8000000, SPI_MODE0);
+#if !defined(FAKE_BLELOCALDEVICE)
+BLELocalDevice BLEObj(&HCISpiTransport);
+BLELocalDevice &BLE = BLEObj;
+#endif
 #elif defined(ARDUINO_NUCLEO_WB15CC) || defined(ARDUINO_P_NUCLEO_WB55RG) || defined(ARDUINO_STM32WB5MM_DK)
-  HCISharedMemTransportClass HCISharedMemTransport;
-  #if !defined(FAKE_BLELOCALDEVICE)
-    BLELocalDevice BLEObj(&HCISharedMemTransport);
-    BLELocalDevice &BLE = BLEObj;
-  #endif
+HCISharedMemTransportClass HCISharedMemTransport;
+#if !defined(FAKE_BLELOCALDEVICE)
+BLELocalDevice BLEObj(&HCISharedMemTransport);
+BLELocalDevice &BLE = BLEObj;
+#endif
 #else
-  /* Shield IDB05A2 with SPI clock on D3 */
-  SPIClass SpiHCI(D11, D12, D3);
-  HCISpiTransportClass HCISpiTransport(SpiHCI, BLUENRG_M0, A1, A0, D7, 8000000, SPI_MODE0);
-  #if !defined(FAKE_BLELOCALDEVICE)
-    BLELocalDevice BLEObj(&HCISpiTransport);
-    BLELocalDevice &BLE = BLEObj;
-  #endif
-  /* Shield IDB05A2 with SPI clock on D13 */
-  // #define SpiHCI SPI
-  // HCISpiTransportClass HCISpiTransport(SpiHCI, BLUENRG_M0, A1, A0, D7, 8000000, SPI_MODE0);
-  // #if !defined(FAKE_BLELOCALDEVICE)
-  // BLELocalDevice BLEObj(&HCISpiTransport);
-  // BLELocalDevice& BLE = BLEObj;
-  // #endif
-  /* Shield IDB05A1 with SPI clock on D3 */
-  // SPIClass SpiHCI(D11, D12, D3);
-  // HCISpiTransportClass HCISpiTransport(SpiHCI, SPBTLE_RF, A1, A0, D7, 8000000, SPI_MODE0);
-  // #if !defined(FAKE_BLELOCALDEVICE)
-  // BLELocalDevice BLEObj(&HCISpiTransport);
-  // BLELocalDevice& BLE = BLEObj;
-  // #endif
-  /* Shield IDB05A1 with SPI clock on D13 */
-  // #define SpiHCI SPI
-  // HCISpiTransportClass HCISpiTransport(SpiHCI, SPBTLE_RF, A1, A0, D7, 8000000, SPI_MODE0);
-  // #if !defined(FAKE_BLELOCALDEVICE)
-  // BLELocalDevice BLEObj(&HCISpiTransport);
-  // BLELocalDevice& BLE = BLEObj;
-  // #endif
-  /* Shield BNRG2A1 with SPI clock on D3 */
-  // SPIClass SpiHCI(D11, D12, D3);
-  // HCISpiTransportClass HCISpiTransport(SpiHCI, BLUENRG_M2SP, A1, A0, D7, 1000000, SPI_MODE1);
-  // #if !defined(FAKE_BLELOCALDEVICE)
-  // BLELocalDevice BLEObj(&HCISpiTransport);
-  // BLELocalDevice& BLE = BLEObj;
-  // #endif
-  /* Shield BNRG2A1 with SPI clock on D13 */
-  // #define SpiHCI SPI
-  // HCISpiTransportClass HCISpiTransport(SpiHCI, BLUENRG_M2SP, A1, A0, D7, 1000000, SPI_MODE1);
-  // #if !defined(FAKE_BLELOCALDEVICE)
-  // BLELocalDevice BLEObj(&HCISpiTransport);
-  // BLELocalDevice& BLE = BLEObj;
-  // #endif
+/* Shield IDB05A2 with SPI clock on D3 */
+SPIClass SpiHCI(D11, D12, D3);
+HCISpiTransportClass HCISpiTransport(SpiHCI, BLUENRG_M0, A1, A0, D7, 8000000, SPI_MODE0);
+#if !defined(FAKE_BLELOCALDEVICE)
+BLELocalDevice BLEObj(&HCISpiTransport);
+BLELocalDevice &BLE = BLEObj;
+#endif
+/* Shield IDB05A2 with SPI clock on D13 */
+// #define SpiHCI SPI
+// HCISpiTransportClass HCISpiTransport(SpiHCI, BLUENRG_M0, A1, A0, D7, 8000000, SPI_MODE0);
+// #if !defined(FAKE_BLELOCALDEVICE)
+// BLELocalDevice BLEObj(&HCISpiTransport);
+// BLELocalDevice& BLE = BLEObj;
+// #endif
+/* Shield IDB05A1 with SPI clock on D3 */
+// SPIClass SpiHCI(D11, D12, D3);
+// HCISpiTransportClass HCISpiTransport(SpiHCI, SPBTLE_RF, A1, A0, D7, 8000000, SPI_MODE0);
+// #if !defined(FAKE_BLELOCALDEVICE)
+// BLELocalDevice BLEObj(&HCISpiTransport);
+// BLELocalDevice& BLE = BLEObj;
+// #endif
+/* Shield IDB05A1 with SPI clock on D13 */
+// #define SpiHCI SPI
+// HCISpiTransportClass HCISpiTransport(SpiHCI, SPBTLE_RF, A1, A0, D7, 8000000, SPI_MODE0);
+// #if !defined(FAKE_BLELOCALDEVICE)
+// BLELocalDevice BLEObj(&HCISpiTransport);
+// BLELocalDevice& BLE = BLEObj;
+// #endif
+/* Shield BNRG2A1 with SPI clock on D3 */
+// SPIClass SpiHCI(D11, D12, D3);
+// HCISpiTransportClass HCISpiTransport(SpiHCI, BLUENRG_M2SP, A1, A0, D7, 1000000, SPI_MODE1);
+// #if !defined(FAKE_BLELOCALDEVICE)
+// BLELocalDevice BLEObj(&HCISpiTransport);
+// BLELocalDevice& BLE = BLEObj;
+// #endif
+/* Shield BNRG2A1 with SPI clock on D13 */
+// #define SpiHCI SPI
+// HCISpiTransportClass HCISpiTransport(SpiHCI, BLUENRG_M2SP, A1, A0, D7, 1000000, SPI_MODE1);
+// #if !defined(FAKE_BLELOCALDEVICE)
+// BLELocalDevice BLEObj(&HCISpiTransport);
+// BLELocalDevice& BLE = BLEObj;
+// #endif
 #endif
 
 // Interrupts
