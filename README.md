@@ -65,7 +65,7 @@ The FP_Examples library requires the following STM32duino libraries (link to the
 * STM32duino S2-LP: https://github.com/stm32duino/S2-LP
 * STM32duino M95640-R: https://github.com/stm32duino/M95640-R
 * STM32duino X-NUCLEO-IKS02A1 Audio: https://github.com/stm32duino/X-NUCLEO-IKS02A1-Audio
-* STM32duino BLE: https://github.com/stm32duino/STM32duinoBLE
+* STM32duinoBLE: https://github.com/stm32duino/STM32duinoBLE
 
 ## Documentation
 
