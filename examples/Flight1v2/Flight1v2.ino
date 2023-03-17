@@ -299,9 +299,9 @@ class Flight1Service {
       STORE_LE_16(mBuff + 4, Mag[1]);
       STORE_LE_16(mBuff + 6, Mag[2]);
 
-      AXIS_X = (Gyros[0]) * 10;
-      AXIS_Y = (Gyros[1]) * 10;
-      AXIS_Z = (Gyros[2]) * 10;
+      AXIS_X = (Gyros[0]) / 100;
+      AXIS_Y = (Gyros[1]) / 100;
+      AXIS_Z = (Gyros[2]) / 100;
 
       STORE_LE_16(gBuff, millis());
       STORE_LE_16(gBuff + 2, AXIS_X);
