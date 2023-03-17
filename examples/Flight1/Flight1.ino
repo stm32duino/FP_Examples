@@ -180,13 +180,12 @@ uint16_t ProxCharHandle;
 uint16_t GestureDetCharHandle;
 
 // Distance components.
-STMPE1600DigiOut *xshutdown_top;
-STMPE1600DigiOut *xshutdown_left;
-STMPE1600DigiOut *xshutdown_right;
-VL53L1X_X_NUCLEO_53L1A1 *sensor_vl53l1_top;
-VL53L1X_X_NUCLEO_53L1A1 *sensor_vl53l1_left;
-VL53L1X_X_NUCLEO_53L1A1 *sensor_vl53l1_right;
-
+STMPE1600DigiOut xshutdown_top(&DEV_I2C, GPIO_15, (0x42 * 2));
+STMPE1600DigiOut xshutdown_left(&DEV_I2C, GPIO_14, (0x43 * 2));
+STMPE1600DigiOut xshutdown_right(&DEV_I2C, GPIO_15, (0x43 * 2));
+VL53L1X_X_NUCLEO_53L1A1 sensor_vl53l1x_top(&DEV_I2C, &xshutdown_top);
+VL53L1X_X_NUCLEO_53L1A1 sensor_vl53l1x_left(&DEV_I2C, &xshutdown_left);
+VL53L1X_X_NUCLEO_53L1A1 sensor_vl53l1x_right(&DEV_I2C, &xshutdown_right);
 
 // Gesture structure.
 Gesture_DIRSWIPE_1_Data_t gestureDirSwipeData;
@@ -196,18 +195,18 @@ uint16_t distance_top, distance_left, distance_right;
 
 //MEMS sensors
 #ifdef USE_IKS01A3
-HTS221Sensor  *HumTemp;
-LPS22HHSensor  *PressTemp;
-LSM6DSOSensor *AccGyr;
-LIS2DW12Sensor *Acc2;
-LIS2MDLSensor *Mag;
-STTS751Sensor *Temp;
+LSM6DSOSensor AccGyr(&DEV_I2C);
+LIS2DW12Sensor Acc2(&DEV_I2C);
+LIS2MDLSensor Mag(&DEV_I2C);
+LPS22HHSensor PressTemp(&DEV_I2C);
+HTS221Sensor HumTemp(&DEV_I2C);
+STTS751Sensor Temp(&DEV_I2C);
 #elif defined (USE_IKS01A2)
-HTS221Sensor  *HumTemp;
-LPS22HBSensor  *PressTemp;
-LSM6DSLSensor *AccGyr;
-LSM303AGR_ACC_Sensor *Acc2;
-LSM303AGR_MAG_Sensor *Mag;
+HTS221Sensor HumTemp(&DEV_I2C);
+LPS22HBSensor PressTemp(&DEV_I2C);
+LSM6DSLSensor AccGyr(&DEV_I2C);
+LSM303AGR_ACC_Sensor Acc2(&DEV_I2C);
+LSM303AGR_MAG_Sensor Mag(&DEV_I2C);
 #endif
 
 
@@ -682,32 +681,32 @@ Flight1Service Flight1;
 
 void enableAllFunc()
 {
-   AccGyr->Enable_Pedometer();
+   AccGyr.Enable_Pedometer();
 #ifdef USE_IKS01A3
-   AccGyr->Enable_Tilt_Detection(LSM6DSO_INT1_PIN);
-   AccGyr->Enable_Free_Fall_Detection(LSM6DSO_INT1_PIN);
-   AccGyr->Enable_Single_Tap_Detection(LSM6DSO_INT1_PIN);
-   AccGyr->Enable_Double_Tap_Detection(LSM6DSO_INT1_PIN);
-   AccGyr->Enable_6D_Orientation(LSM6DSO_INT1_PIN);
-   AccGyr->Step_Counter_Reset();
+   AccGyr.Enable_Tilt_Detection(LSM6DSO_INT1_PIN);
+   AccGyr.Enable_Free_Fall_Detection(LSM6DSO_INT1_PIN);
+   AccGyr.Enable_Single_Tap_Detection(LSM6DSO_INT1_PIN);
+   AccGyr.Enable_Double_Tap_Detection(LSM6DSO_INT1_PIN);
+   AccGyr.Enable_6D_Orientation(LSM6DSO_INT1_PIN);
+   AccGyr.Step_Counter_Reset();
 #elif defined (USE_IKS01A2)
-   AccGyr->Enable_Tilt_Detection();
-   AccGyr->Enable_Free_Fall_Detection();
-   AccGyr->Enable_Single_Tap_Detection();
-   AccGyr->Enable_Double_Tap_Detection();
-   AccGyr->Enable_6D_Orientation();
-   AccGyr->Reset_Step_Counter();
+   AccGyr.Enable_Tilt_Detection();
+   AccGyr.Enable_Free_Fall_Detection();
+   AccGyr.Enable_Single_Tap_Detection();
+   AccGyr.Enable_Double_Tap_Detection();
+   AccGyr.Enable_6D_Orientation();
+   AccGyr.Reset_Step_Counter();
 #endif
 }
 
 void disableAllFunc()
 {
-   AccGyr->Disable_Pedometer();
-   AccGyr->Disable_Tilt_Detection();
-   AccGyr->Disable_Free_Fall_Detection();
-   AccGyr->Disable_Single_Tap_Detection();
-   AccGyr->Disable_Double_Tap_Detection();
-   AccGyr->Disable_6D_Orientation();
+   AccGyr.Disable_Pedometer();
+   AccGyr.Disable_Tilt_Detection();
+   AccGyr.Disable_Free_Fall_Detection();
+   AccGyr.Disable_Single_Tap_Detection();
+   AccGyr.Disable_Double_Tap_Detection();
+   AccGyr.Disable_6D_Orientation();
 }
 
 void ConfigCommandParsing(uint8_t * att_data, uint8_t data_length)
@@ -744,15 +743,15 @@ void ConfigCommandParsing(uint8_t * att_data, uint8_t data_length)
          {
          case 1:
 #ifdef USE_IKS01A3
-            AccGyr->Enable_Free_Fall_Detection(LSM6DSO_INT1_PIN);
+            AccGyr.Enable_Free_Fall_Detection(LSM6DSO_INT1_PIN);
 #elif defined(USE_IKS01A2)
-            AccGyr->Enable_Free_Fall_Detection();
+            AccGyr.Enable_Free_Fall_Detection();
 #endif
             FLIGHT1_PRINTF("Free fall enabled\n");
             Flight1.Config_Notify(FEATURE_MASK_ACC_EVENTS,Command,Data);
             break;
          case 0:
-            AccGyr->Disable_Free_Fall_Detection();
+            AccGyr.Disable_Free_Fall_Detection();
             FLIGHT1_PRINTF("Free fall disabled\n");
             Flight1.Config_Notify(FEATURE_MASK_ACC_EVENTS,Command,Data);
             break;
@@ -764,15 +763,15 @@ void ConfigCommandParsing(uint8_t * att_data, uint8_t data_length)
          {
          case 1:
 #ifdef USE_IKS01A3
-            AccGyr->Enable_Double_Tap_Detection(LSM6DSO_INT1_PIN);
+            AccGyr.Enable_Double_Tap_Detection(LSM6DSO_INT1_PIN);
 #elif defined(USE_IKS01A2)
-            AccGyr->Enable_Double_Tap_Detection();
+            AccGyr.Enable_Double_Tap_Detection();
 #endif
             FLIGHT1_PRINTF("Double tap enabled\n");
             Flight1.Config_Notify(FEATURE_MASK_ACC_EVENTS,Command,Data);
             break;
          case 0:
-            AccGyr->Disable_Double_Tap_Detection();
+            AccGyr.Disable_Double_Tap_Detection();
             FLIGHT1_PRINTF("Double tap disabled\n");
             Flight1.Config_Notify(FEATURE_MASK_ACC_EVENTS,Command,Data);
             break;
@@ -784,15 +783,15 @@ void ConfigCommandParsing(uint8_t * att_data, uint8_t data_length)
          {
          case 1:
 #ifdef USE_IKS01A3
-            AccGyr->Enable_Single_Tap_Detection(LSM6DSO_INT1_PIN);
+            AccGyr.Enable_Single_Tap_Detection(LSM6DSO_INT1_PIN);
 #elif defined(USE_IKS01A2)
-            AccGyr->Enable_Single_Tap_Detection();
+            AccGyr.Enable_Single_Tap_Detection();
 #endif
             FLIGHT1_PRINTF("Single tap enabled\n");
             Flight1.Config_Notify(FEATURE_MASK_ACC_EVENTS,Command,Data);
             break;
          case 0:
-            AccGyr->Disable_Single_Tap_Detection();
+            AccGyr.Disable_Single_Tap_Detection();
             FLIGHT1_PRINTF("Single tap disabled\n");
             Flight1.Config_Notify(FEATURE_MASK_ACC_EVENTS,Command,Data);
             break;
@@ -803,17 +802,17 @@ void ConfigCommandParsing(uint8_t * att_data, uint8_t data_length)
          switch(Data)
          {
          case 1:
-            AccGyr->Enable_Pedometer();
+            AccGyr.Enable_Pedometer();
 #ifdef USE_IKS01A3
-            AccGyr->Step_Counter_Reset();
+            AccGyr.Step_Counter_Reset();
 #elif defined (USE_IKS01A2)
-            AccGyr->Reset_Step_Counter();
+            AccGyr.Reset_Step_Counter();
 #endif
             FLIGHT1_PRINTF("Pedometer enabled\n");
             Flight1.Config_Notify(FEATURE_MASK_ACC_EVENTS,Command,Data);
             break;
          case 0:
-            AccGyr->Disable_Pedometer();
+            AccGyr.Disable_Pedometer();
             FLIGHT1_PRINTF("Pedometer disabled\n");
             Flight1.Config_Notify(FEATURE_MASK_ACC_EVENTS,Command,Data);
             break;
@@ -825,15 +824,15 @@ void ConfigCommandParsing(uint8_t * att_data, uint8_t data_length)
          {
          case 1:
 #ifdef USE_IKS01A3
-            AccGyr->Enable_Wake_Up_Detection(LSM6DSO_INT2_PIN);
+            AccGyr.Enable_Wake_Up_Detection(LSM6DSO_INT2_PIN);
 #elif defined(USE_IKS01A2)
-            AccGyr->Enable_Wake_Up_Detection();
+            AccGyr.Enable_Wake_Up_Detection();
 #endif
             FLIGHT1_PRINTF("Wake up enabled\n");
             Flight1.Config_Notify(FEATURE_MASK_ACC_EVENTS,Command,Data);
             break;
          case 0:
-            AccGyr->Disable_Wake_Up_Detection();
+            AccGyr.Disable_Wake_Up_Detection();
             FLIGHT1_PRINTF("Wake up disabled\n");
             Flight1.Config_Notify(FEATURE_MASK_ACC_EVENTS,Command,Data);
             break;
@@ -845,15 +844,15 @@ void ConfigCommandParsing(uint8_t * att_data, uint8_t data_length)
          {
          case 1:
 #ifdef USE_IKS01A3
-            AccGyr->Enable_Tilt_Detection(LSM6DSO_INT1_PIN);
+            AccGyr.Enable_Tilt_Detection(LSM6DSO_INT1_PIN);
 #elif defined(USE_IKS01A2)
-            AccGyr->Enable_Tilt_Detection();
+            AccGyr.Enable_Tilt_Detection();
 #endif
             FLIGHT1_PRINTF("Tilt enabled\n");
             Flight1.Config_Notify(FEATURE_MASK_ACC_EVENTS,Command,Data);
             break;
          case 0:
-            AccGyr->Disable_Tilt_Detection();
+            AccGyr.Disable_Tilt_Detection();
             FLIGHT1_PRINTF("Tilt disabled\n");
             Flight1.Config_Notify(FEATURE_MASK_ACC_EVENTS,Command,Data);
             break;
@@ -865,15 +864,15 @@ void ConfigCommandParsing(uint8_t * att_data, uint8_t data_length)
          {
          case 1:
 #ifdef USE_IKS01A3
-            AccGyr->Enable_6D_Orientation(LSM6DSO_INT1_PIN);
+            AccGyr.Enable_6D_Orientation(LSM6DSO_INT1_PIN);
 #elif defined(USE_IKS01A2)
-            AccGyr->Enable_6D_Orientation();
+            AccGyr.Enable_6D_Orientation();
 #endif
             FLIGHT1_PRINTF("Orientation enabled\n");
             Flight1.Config_Notify(FEATURE_MASK_ACC_EVENTS,Command,Data);
             break;
          case 0:
-            AccGyr->Disable_6D_Orientation();
+            AccGyr.Disable_6D_Orientation();
             FLIGHT1_PRINTF("Orientation disabled\n");
             Flight1.Config_Notify(FEATURE_MASK_ACC_EVENTS,Command,Data);
             break;
@@ -997,7 +996,7 @@ void Flight1_HCI_Event_CB(void *pckt)
       {
          Flight1.connected=TRUE;
          disableAllFunc();
-         AccGyr->Disable_Wake_Up_Detection();
+         AccGyr.Disable_Wake_Up_Detection();
          delay(100);
          FLIGHT1_PRINTF("Connected\n");
       }
@@ -1086,83 +1085,66 @@ void setup()
    SerialPort.println("Bluetooth configuration done!");
 
    // Create VL53L1X top component.
-   xshutdown_top = new STMPE1600DigiOut(&DEV_I2C, GPIO_15, (0x42 * 2));
-   sensor_vl53l1_top = new VL53L1X_X_NUCLEO_53L1A1(&DEV_I2C, xshutdown_top);
-   sensor_vl53l1_top->begin();
+   sensor_vl53l1x_top.begin();
 
    // Switch off VL53L1X top component.
-   sensor_vl53l1_top->VL53L1X_Off();
+   sensor_vl53l1x_top.VL53L1X_Off();
 
    // Create (if present) VL53L1X left component.
-   xshutdown_left = new STMPE1600DigiOut(&DEV_I2C, GPIO_14, (0x43 * 2));
-   sensor_vl53l1_left = new VL53L1X_X_NUCLEO_53L1A1(&DEV_I2C, xshutdown_left);
-   sensor_vl53l1_left->begin();
+   sensor_vl53l1x_left.begin();
 
    //Switch off (if present) VL53L1X left component.
-   sensor_vl53l1_left->VL53L1X_Off();
+   sensor_vl53l1x_left.VL53L1X_Off();
 
    // Create (if present) VL53L1X right component.
-   xshutdown_right = new STMPE1600DigiOut(&DEV_I2C, GPIO_15, (0x43 * 2));
-   sensor_vl53l1_right = new VL53L1X_X_NUCLEO_53L1A1(&DEV_I2C, xshutdown_right);
-   sensor_vl53l1_right->begin();
+   sensor_vl53l1x_right.begin();
 
    // Switch off (if present) VL53L1X right component.
-   sensor_vl53l1_right->VL53L1X_Off();
+   sensor_vl53l1x_right.VL53L1X_Off();
 
    //Initialize the sensor
-   sensor_vl53l1_top->InitSensor(0x10);
-   sensor_vl53l1_left->InitSensor(0x12);
-   sensor_vl53l1_right->InitSensor(0x14);
+   sensor_vl53l1x_top.InitSensor(0x10);
+   sensor_vl53l1x_left.InitSensor(0x12);
+   sensor_vl53l1x_right.InitSensor(0x14);
 
    //Change Distance mode and timings
-   SetupSingleShot(sensor_vl53l1_top);
-   SetupSingleShot(sensor_vl53l1_left);
-   SetupSingleShot(sensor_vl53l1_right);
+   SetupSingleShot(&sensor_vl53l1x_top);
+   SetupSingleShot(&sensor_vl53l1x_left);
+   SetupSingleShot(&sensor_vl53l1x_right);
 
 
    //Top sensor should be in long distance mode
-   sensor_vl53l1_top->VL53L1X_SetDistanceMode(2);
+   sensor_vl53l1x_top.VL53L1X_SetDistanceMode(2);
 
    // Initialize VL53L1X gesture library.
    tof_gestures_initDIRSWIPE_1(400, 0, 500, &gestureDirSwipeData);
    tof_gestures_initTAP_1(&gestureTapData);
 
    //Start measurement
-   sensor_vl53l1_top->VL53L1X_StartRanging();
-   sensor_vl53l1_left->VL53L1X_StartRanging();
-   sensor_vl53l1_right->VL53L1X_StartRanging();
+   sensor_vl53l1x_top.VL53L1X_StartRanging();
+   sensor_vl53l1x_left.VL53L1X_StartRanging();
+   sensor_vl53l1x_right.VL53L1X_StartRanging();
 
    //Setup MEMS sensors
 #ifdef USE_IKS01A3
-   HumTemp  = new HTS221Sensor (&DEV_I2C);
-   PressTemp = new LPS22HHSensor (&DEV_I2C);
-   AccGyr = new LSM6DSOSensor(&DEV_I2C);
-   Acc2 = new LIS2DW12Sensor(&DEV_I2C);
-   Mag = new LIS2MDLSensor(&DEV_I2C);
-   Temp = new STTS751Sensor(&DEV_I2C);
-   Temp->begin();
-   Temp->Enable();
-   Acc2->begin();
-   Acc2->Enable_X();
+   Temp.begin();
+   Temp.Enable();
+   Acc2.begin();
+   Acc2.Enable_X();
 #elif defined (USE_IKS01A2)
-   HumTemp  = new HTS221Sensor (&DEV_I2C);
-   PressTemp = new LPS22HBSensor (&DEV_I2C);
-   AccGyr = new LSM6DSLSensor(&DEV_I2C);
-   Acc2 = new LSM303AGR_ACC_Sensor(&DEV_I2C);
-   Mag = new LSM303AGR_MAG_Sensor(&DEV_I2C);
-   Acc2->begin();
-   Acc2->Enable();
+   Acc2.begin();
+   Acc2.Enable();
 #endif
-   HumTemp->begin();
-   HumTemp->Enable();
-   PressTemp->begin();
-   PressTemp->Enable();
-   AccGyr->begin();
-   AccGyr->Enable_X();
-   AccGyr->Set_X_ODR(4.0f);
-   AccGyr->Enable_G();
-   Mag->begin();
-   Mag->Enable();
+   HumTemp.begin();
+   HumTemp.Enable();
+   PressTemp.begin();
+   PressTemp.Enable();
+   AccGyr.begin();
+   AccGyr.Enable_X();
+   AccGyr.Set_X_ODR(4.0f);
+   AccGyr.Enable_G();
+   Mag.begin();
+   Mag.Enable();
 }
 
 void loop()
@@ -1191,13 +1173,13 @@ void loop()
       float humidity, temperature, pressure;
       if (Enviroment_Enable)
       {
-         HumTemp->GetHumidity(&humidity);
+         HumTemp.GetHumidity(&humidity);
 #ifdef USE_IKS01A3
-         Temp->GetTemperature(&temperature);
+         Temp.GetTemperature(&temperature);
 #elif defined (USE_IKS01A2)
-         HumTemp->GetTemperature(&temperature);
+         HumTemp.GetTemperature(&temperature);
 #endif
-         PressTemp->GetPressure(&pressure);
+         PressTemp.GetPressure(&pressure);
          MCR_BLUEMS_F2I_2D(pressure, intPart, decPart);
          PressToSend=intPart*100+decPart;
          MCR_BLUEMS_F2I_1D(humidity, intPart, decPart);
@@ -1212,8 +1194,8 @@ void loop()
       if (AccGyroMag_Enable)
       {
          // Read accelerometer and gyroscope.
-         AccGyr->Get_X_Axes(accelerometer);
-         AccGyr->Get_G_Axes(gyroscope);
+         AccGyr.Get_X_Axes(accelerometer);
+         AccGyr.Get_G_Axes(gyroscope);
       }
 
       //FLIGHT1_PRINTF("Accelerometer:\tX:%d\tY:%d\tZ:%d\n", accelerometer[0], accelerometer[1], accelerometer[2]);
@@ -1224,19 +1206,19 @@ void loop()
          mems_event=0;
 #ifdef USE_IKS01A3
          LSM6DSO_Event_Status_t Astatus;
-         AccGyr->Get_X_Event_Status(&Astatus);
+         AccGyr.Get_X_Event_Status(&Astatus);
 #elif defined(USE_IKS01A2)
          LSM6DSL_Event_Status_t Astatus;
-         AccGyr->Get_Event_Status(&Astatus);
+         AccGyr.Get_Event_Status(&Astatus);
 #endif
          if (Astatus.StepStatus)
          {
             // New step detected, so print the step counter
             uint16_t step_count = 0;
 #ifdef USE_IKS01A3
-            AccGyr->Get_Step_Count(&step_count);
+            AccGyr.Get_Step_Count(&step_count);
 #elif defined(USE_IKS01A2)
-            AccGyr->Get_Step_Counter(&step_count);
+            AccGyr.Get_Step_Counter(&step_count);
 #endif
             FLIGHT1_PRINTF("Step %d\n", step_count);
             Flight1.AccEvent_Notify(step_count, 3);
@@ -1275,12 +1257,12 @@ void loop()
             uint8_t zl = 0;
             uint8_t zh = 0;
             uint8_t OrientationResult = 0;
-            AccGyr->Get_6D_Orientation_XL(&xl);
-            AccGyr->Get_6D_Orientation_XH(&xh);
-            AccGyr->Get_6D_Orientation_YL(&yl);
-            AccGyr->Get_6D_Orientation_YH(&yh);
-            AccGyr->Get_6D_Orientation_ZL(&zl);
-            AccGyr->Get_6D_Orientation_ZH(&zh);
+            AccGyr.Get_6D_Orientation_XL(&xl);
+            AccGyr.Get_6D_Orientation_XH(&xh);
+            AccGyr.Get_6D_Orientation_YL(&yl);
+            AccGyr.Get_6D_Orientation_YH(&yh);
+            AccGyr.Get_6D_Orientation_ZL(&zl);
+            AccGyr.Get_6D_Orientation_ZH(&zh);
             if ( xl == 0 && yl == 0 && zl == 0 && xh == 0 && yh == 1 && zh == 0 )
             {
                OrientationResult = 4;
@@ -1320,12 +1302,12 @@ void loop()
          //Get top sensor distance and transmit
          do
          {
-            sensor_vl53l1_top->VL53L1X_CheckForDataReady(&ready);
+            sensor_vl53l1x_top.VL53L1X_CheckForDataReady(&ready);
          }
          while (!ready);
 
-         status = sensor_vl53l1_top->VL53L1X_GetRangeStatus(&RangeStatus);
-         status = sensor_vl53l1_top->VL53L1X_GetDistance(&distance);
+         status = sensor_vl53l1x_top.VL53L1X_GetRangeStatus(&RangeStatus);
+         status = sensor_vl53l1x_top.VL53L1X_GetDistance(&distance);
 
          if (status == VL53L1X_ERROR_NONE && Distance_Enable)
          {
@@ -1333,7 +1315,7 @@ void loop()
          }
 
          //Clear interrupt
-         status = sensor_vl53l1_top->VL53L1X_ClearInterrupt();
+         status = sensor_vl53l1x_top.VL53L1X_ClearInterrupt();
 
          distance = (RangeStatus == 0 && distance<1400) ? distance : 1400;
 
@@ -1360,7 +1342,7 @@ void loop()
             {
                NewDataReady = 0;
                //check measurement data ready
-               int status = sensor_vl53l1_left->VL53L1X_CheckForDataReady(&NewDataReady);
+               int status = sensor_vl53l1x_left.VL53L1X_CheckForDataReady(&NewDataReady);
 
                if( status )
                {
@@ -1370,7 +1352,7 @@ void loop()
                if(NewDataReady)
                {
                   //get status
-                  status = sensor_vl53l1_left->VL53L1X_GetRangeStatus(&RangeStatus);
+                  status = sensor_vl53l1x_left.VL53L1X_GetRangeStatus(&RangeStatus);
                   if( status )
                   {
                      SerialPort.println("GetRangeStatus left sensor failed");
@@ -1380,7 +1362,7 @@ void loop()
                   if (RangeStatus == 0)
                   {
                      // we have a valid range.
-                     status = sensor_vl53l1_left->VL53L1X_GetDistance(&distance_left);
+                     status = sensor_vl53l1x_left.VL53L1X_GetDistance(&distance_left);
                      if( status )
                      {
                         SerialPort.println("GetDistance left sensor failed");
@@ -1392,7 +1374,7 @@ void loop()
                   }
 
                   //restart measurement
-                  status = sensor_vl53l1_left->VL53L1X_ClearInterrupt();
+                  status = sensor_vl53l1x_left.VL53L1X_ClearInterrupt();
                   if( status )
                   {
                      SerialPort.println("Restart left sensor failed");
@@ -1407,7 +1389,7 @@ void loop()
             {
                NewDataReady = 0;
                //check measurement data ready
-               int status = sensor_vl53l1_right->VL53L1X_CheckForDataReady(&NewDataReady);
+               int status = sensor_vl53l1x_right.VL53L1X_CheckForDataReady(&NewDataReady);
 
                if( status )
                {
@@ -1417,7 +1399,7 @@ void loop()
                if(NewDataReady)
                {
                   //get status
-                  status = sensor_vl53l1_right->VL53L1X_GetRangeStatus(&RangeStatus);
+                  status = sensor_vl53l1x_right.VL53L1X_GetRangeStatus(&RangeStatus);
                   if( status )
                   {
                      SerialPort.println("GetRangeStatus right sensor failed");
@@ -1426,7 +1408,7 @@ void loop()
                   if (RangeStatus == 0)
                   {
                      // we have a valid range.
-                     status = sensor_vl53l1_right->VL53L1X_GetDistance(&distance_right);
+                     status = sensor_vl53l1x_right.VL53L1X_GetDistance(&distance_right);
                      if( status )
                      {
                         SerialPort.println("GetDistance right sensor failed");
@@ -1438,7 +1420,7 @@ void loop()
                   }
 
                   //restart measurement
-                  status = sensor_vl53l1_right->VL53L1X_ClearInterrupt();
+                  status = sensor_vl53l1x_right.VL53L1X_ClearInterrupt();
                   if( status )
                   {
                      SerialPort.println("Restart right sensor failed");

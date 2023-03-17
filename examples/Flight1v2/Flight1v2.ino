@@ -1,6 +1,6 @@
 /**
  ******************************************************************************
-   @file    Flight2.ino
+   @file    Flight1v2.ino
    @author  STMicroelectronics
    @version V1.0.0
    @date    15 March 2023
@@ -68,79 +68,12 @@
 #define INT_2 5
 
 // BLE boards
-#if defined(ARDUINO_STEVAL_MKBOXPRO)
-/* STEVAL-MKBOXPRO */
-SPIClass SpiHCI(PA7, PA6, PA5);
-HCISpiTransportClass HCISpiTransport(SpiHCI, BLUENRG_LP, PA2, PB11, PD4, 1000000, SPI_MODE3);
-#if !defined(FAKE_BLELOCALDEVICE)
-BLELocalDevice BLEObj(&HCISpiTransport);
-BLELocalDevice &BLE = BLEObj;
-#endif
-#elif defined(ARDUINO_STEVAL_MKSBOX1V1)
-/* STEVAL-MKSBOX1V1 */
-SPIClass SpiHCI(PC3, PD3, PD1);
-HCISpiTransportClass HCISpiTransport(SpiHCI, SPBTLE_1S, PD0, PD4, PA8, 1000000, SPI_MODE1);
-#if !defined(FAKE_BLELOCALDEVICE)
-BLELocalDevice BLEObj(&HCISpiTransport);
-BLELocalDevice &BLE = BLEObj;
-#endif
-#elif defined(ARDUINO_B_L475E_IOT01A) || defined(ARDUINO_B_L4S5I_IOT01A)
-/* B-L475E-IOT01A1 or B_L4S5I_IOT01A */
-SPIClass SpiHCI(PC12, PC11, PC10);
-HCISpiTransportClass HCISpiTransport(SpiHCI, SPBTLE_RF, PD13, PE6, PA8, 8000000, SPI_MODE0);
-#if !defined(FAKE_BLELOCALDEVICE)
-BLELocalDevice BLEObj(&HCISpiTransport);
-BLELocalDevice &BLE = BLEObj;
-#endif
-#elif defined(ARDUINO_NUCLEO_WB15CC) || defined(ARDUINO_P_NUCLEO_WB55RG) || defined(ARDUINO_STM32WB5MM_DK)
-HCISharedMemTransportClass HCISharedMemTransport;
-#if !defined(FAKE_BLELOCALDEVICE)
-BLELocalDevice BLEObj(&HCISharedMemTransport);
-BLELocalDevice &BLE = BLEObj;
-#endif
-#else
 /* Shield IDB05A2 with SPI clock on D3 */
 SPIClass SpiHCI(D11, D12, D3);
 HCISpiTransportClass HCISpiTransport(SpiHCI, BLUENRG_M0, A1, A0, D7, 8000000, SPI_MODE0);
 #if !defined(FAKE_BLELOCALDEVICE)
 BLELocalDevice BLEObj(&HCISpiTransport);
 BLELocalDevice &BLE = BLEObj;
-#endif
-/* Shield IDB05A2 with SPI clock on D13 */
-// #define SpiHCI SPI
-// HCISpiTransportClass HCISpiTransport(SpiHCI, BLUENRG_M0, A1, A0, D7, 8000000, SPI_MODE0);
-// #if !defined(FAKE_BLELOCALDEVICE)
-// BLELocalDevice BLEObj(&HCISpiTransport);
-// BLELocalDevice& BLE = BLEObj;
-// #endif
-/* Shield IDB05A1 with SPI clock on D3 */
-// SPIClass SpiHCI(D11, D12, D3);
-// HCISpiTransportClass HCISpiTransport(SpiHCI, SPBTLE_RF, A1, A0, D7, 8000000, SPI_MODE0);
-// #if !defined(FAKE_BLELOCALDEVICE)
-// BLELocalDevice BLEObj(&HCISpiTransport);
-// BLELocalDevice& BLE = BLEObj;
-// #endif
-/* Shield IDB05A1 with SPI clock on D13 */
-// #define SpiHCI SPI
-// HCISpiTransportClass HCISpiTransport(SpiHCI, SPBTLE_RF, A1, A0, D7, 8000000, SPI_MODE0);
-// #if !defined(FAKE_BLELOCALDEVICE)
-// BLELocalDevice BLEObj(&HCISpiTransport);
-// BLELocalDevice& BLE = BLEObj;
-// #endif
-/* Shield BNRG2A1 with SPI clock on D3 */
-// SPIClass SpiHCI(D11, D12, D3);
-// HCISpiTransportClass HCISpiTransport(SpiHCI, BLUENRG_M2SP, A1, A0, D7, 1000000, SPI_MODE1);
-// #if !defined(FAKE_BLELOCALDEVICE)
-// BLELocalDevice BLEObj(&HCISpiTransport);
-// BLELocalDevice& BLE = BLEObj;
-// #endif
-/* Shield BNRG2A1 with SPI clock on D13 */
-// #define SpiHCI SPI
-// HCISpiTransportClass HCISpiTransport(SpiHCI, BLUENRG_M2SP, A1, A0, D7, 1000000, SPI_MODE1);
-// #if !defined(FAKE_BLELOCALDEVICE)
-// BLELocalDevice BLEObj(&HCISpiTransport);
-// BLELocalDevice& BLE = BLEObj;
-// #endif
 #endif
 
 // Interrupts
@@ -193,13 +126,12 @@ volatile int mems_event = 0;
 #define FEATURE_MASK_ACC_EVENTS 0x00000400u
 
 // Distance components
-STMPE1600DigiOut *xshutdown_top;
-STMPE1600DigiOut *xshutdown_left;
-STMPE1600DigiOut *xshutdown_right;
-VL53L1X_X_NUCLEO_53L1A1 *sensor_vl53l1_top;
-VL53L1X_X_NUCLEO_53L1A1 *sensor_vl53l1_left;
-VL53L1X_X_NUCLEO_53L1A1 *sensor_vl53l1_right;
-
+STMPE1600DigiOut xshutdown_top(&DEV_I2C, GPIO_15, (0x42 * 2));
+STMPE1600DigiOut xshutdown_left(&DEV_I2C, GPIO_14, (0x43 * 2));
+STMPE1600DigiOut xshutdown_right(&DEV_I2C, GPIO_15, (0x43 * 2));
+VL53L1X_X_NUCLEO_53L1A1 sensor_vl53l1x_top(&DEV_I2C, &xshutdown_top);
+VL53L1X_X_NUCLEO_53L1A1 sensor_vl53l1x_left(&DEV_I2C, &xshutdown_left);
+VL53L1X_X_NUCLEO_53L1A1 sensor_vl53l1x_right(&DEV_I2C, &xshutdown_right);
 
 // Gesture structure
 Gesture_DIRSWIPE_1_Data_t gestureDirSwipeData;
@@ -208,26 +140,26 @@ Gesture_TAP_1_Data_t gestureTapData;
 uint16_t distance_top, distance_left, distance_right;
 
 // MEMS sensors
-HTS221Sensor  *HumTemp;
-LPS22HHSensor  *PressTemp;
-LSM6DSOSensor *AccGyr;
-LIS2DW12Sensor *Acc2;
-LIS2MDLSensor *Mag;
-STTS751Sensor *Temp;
+LSM6DSOSensor AccGyr(&DEV_I2C);
+LIS2DW12Sensor Acc2(&DEV_I2C);
+LIS2MDLSensor Mag(&DEV_I2C);
+LPS22HHSensor PressTemp(&DEV_I2C);
+HTS221Sensor HumTemp(&DEV_I2C);
+STTS751Sensor Temp(&DEV_I2C);
 
 // STRING UUIDs
-char *uuidSensorService =   "00000000-0001-11e1-9ab4-0002a5d5c51b";
-char *uuidConfigService =   "00000000-000f-11e1-9ab4-0002a5d5c51b";
-char *uuidPressChar =       "00100000-0001-11e1-ac36-0002a5d5c51b";
-char *uuidHumChar =         "00080000-0001-11e1-ac36-0002a5d5c51b";
-char *uuidTempChar =        "00040000-0001-11e1-ac36-0002a5d5c51b";
-char *uuidAccChar =         "00800000-0001-11e1-ac36-0002a5d5c51b";
-char *uuidGyroChar =        "00400000-0001-11e1-ac36-0002a5d5c51b";
-char *uuidMagChar =         "00200000-0001-11e1-ac36-0002a5d5c51b";
-char *uuidProxChar =        "02000000-0001-11e1-ac36-0002a5d5c51b";
-char *uuidGestureChar =     "00000004-0001-11e1-ac36-0002a5d5c51b";
-char *uuidAccEventChar =    "00000400-0001-11e1-ac36-0002a5d5c51b";
-char *uuidConfigChar =      "00000002-000f-11e1-ac36-0002a5d5c51b";
+const char *uuidSensorService =   "00000000-0001-11e1-9ab4-0002a5d5c51b";
+const char *uuidConfigService =   "00000000-000f-11e1-9ab4-0002a5d5c51b";
+const char *uuidPressChar =       "00100000-0001-11e1-ac36-0002a5d5c51b";
+const char *uuidHumChar =         "00080000-0001-11e1-ac36-0002a5d5c51b";
+const char *uuidTempChar =        "00040000-0001-11e1-ac36-0002a5d5c51b";
+const char *uuidAccChar =         "00800000-0001-11e1-ac36-0002a5d5c51b";
+const char *uuidGyroChar =        "00400000-0001-11e1-ac36-0002a5d5c51b";
+const char *uuidMagChar =         "00200000-0001-11e1-ac36-0002a5d5c51b";
+const char *uuidProxChar =        "02000000-0001-11e1-ac36-0002a5d5c51b";
+const char *uuidGestureChar =     "00000004-0001-11e1-ac36-0002a5d5c51b";
+const char *uuidAccEventChar =    "00000400-0001-11e1-ac36-0002a5d5c51b";
+const char *uuidConfigChar =      "00000002-000f-11e1-ac36-0002a5d5c51b";
 
 #define LEN_DISTANCE 4
 #define LEN_GESTURE 3
@@ -263,7 +195,7 @@ class Flight1Service {
   public:
 
     uint16_t globalSteps = 0;
-    boolean shortMode = false;
+    bool shortMode = false;
 
     Flight1Service(void)
     {
@@ -334,7 +266,7 @@ class Flight1Service {
       uint8_t buff[LEN_DISTANCE];
 
       /* To discriminate the long proximity range from 53L1A1*/
-      //Distance= Distance | (1 << 15);
+      Distance= Distance | (1 << 15);
 
       STORE_LE_16(buff, millis());
       STORE_LE_16(buff + 2, Distance);
@@ -352,8 +284,6 @@ class Flight1Service {
       int32_t AXIS_X;
       int32_t AXIS_Y;
       int32_t AXIS_Z;
-
-      uint8_t buff[2 + 3 * 2 * 2];
 
       uint8_t aBuff[LEN_ACC];
       uint8_t gBuff[LEN_GYRO];
@@ -403,7 +333,6 @@ class Flight1Service {
     int AccEvent_Notify(uint16_t steps, uint8_t event)
     {
       uint8_t buff_2[2 + 1];    // Only event
-      uint8_t buff_3[2 + 2];    // Only pedometer
       uint8_t buff_4[5];        // Event and pedometer
 
       int ret = 0;
@@ -467,23 +396,23 @@ Flight1Service Flight1;
 
 void enableAllFunc()
 {
-  AccGyr->Enable_Pedometer();
-  AccGyr->Enable_Tilt_Detection(LSM6DSO_INT1_PIN);
-  AccGyr->Enable_Free_Fall_Detection(LSM6DSO_INT1_PIN);
-  AccGyr->Enable_Single_Tap_Detection(LSM6DSO_INT1_PIN);
-  AccGyr->Enable_Double_Tap_Detection(LSM6DSO_INT1_PIN);
-  AccGyr->Enable_6D_Orientation(LSM6DSO_INT1_PIN);
-  AccGyr->Step_Counter_Reset();
+  AccGyr.Enable_Pedometer();
+  AccGyr.Enable_Tilt_Detection(LSM6DSO_INT1_PIN);
+  AccGyr.Enable_Free_Fall_Detection(LSM6DSO_INT1_PIN);
+  AccGyr.Enable_Single_Tap_Detection(LSM6DSO_INT1_PIN);
+  AccGyr.Enable_Double_Tap_Detection(LSM6DSO_INT1_PIN);
+  AccGyr.Enable_6D_Orientation(LSM6DSO_INT1_PIN);
+  AccGyr.Step_Counter_Reset();
 }
 
 void disableAllFunc()
 {
-  AccGyr->Disable_Pedometer();
-  AccGyr->Disable_Tilt_Detection();
-  AccGyr->Disable_Free_Fall_Detection();
-  AccGyr->Disable_Single_Tap_Detection();
-  AccGyr->Disable_Double_Tap_Detection();
-  AccGyr->Disable_6D_Orientation();
+  AccGyr.Disable_Pedometer();
+  AccGyr.Disable_Tilt_Detection();
+  AccGyr.Disable_Free_Fall_Detection();
+  AccGyr.Disable_Single_Tap_Detection();
+  AccGyr.Disable_Double_Tap_Detection();
+  AccGyr.Disable_6D_Orientation();
 }
 
 // Setup distance sensors for gesture detection
@@ -524,6 +453,8 @@ void INT2Event_cb()
 void configCB(BLEDevice unused1, BLECharacteristic unused2)
 {
   uint8_t buf[LEN_CFG];
+  (void)unused1;
+  (void)unused2;
 
   configC.readValue(buf, LEN_CFG);
   char command = buf[4];
@@ -577,73 +508,61 @@ void setup()
   SerialPort.println("Bluetooth configuration done!");
 
   // Create VL53L1X top component.
-  xshutdown_top = new STMPE1600DigiOut(&DEV_I2C, GPIO_15, (0x42 * 2));
-  sensor_vl53l1_top = new VL53L1X_X_NUCLEO_53L1A1(&DEV_I2C, xshutdown_top);
-  sensor_vl53l1_top->begin();
+  sensor_vl53l1x_top.begin();
 
   // Switch off VL53L1X top component.
-  sensor_vl53l1_top->VL53L1X_Off();
+  sensor_vl53l1x_top.VL53L1X_Off();
 
   // Create (if present) VL53L1X left component.
-  xshutdown_left = new STMPE1600DigiOut(&DEV_I2C, GPIO_14, (0x43 * 2));
-  sensor_vl53l1_left = new VL53L1X_X_NUCLEO_53L1A1(&DEV_I2C, xshutdown_left);
-  sensor_vl53l1_left->begin();
+  sensor_vl53l1x_left.begin();
 
   //Switch off (if present) VL53L1X left component.
-  sensor_vl53l1_left->VL53L1X_Off();
+  sensor_vl53l1x_left.VL53L1X_Off();
 
   // Create (if present) VL53L1X right component.
-  xshutdown_right = new STMPE1600DigiOut(&DEV_I2C, GPIO_15, (0x43 * 2));
-  sensor_vl53l1_right = new VL53L1X_X_NUCLEO_53L1A1(&DEV_I2C, xshutdown_right);
-  sensor_vl53l1_right->begin();
+  sensor_vl53l1x_right.begin();
 
   // Switch off (if present) VL53L1X right component.
-  sensor_vl53l1_right->VL53L1X_Off();
+  sensor_vl53l1x_right.VL53L1X_Off();
 
   //Initialize the sensor
-  sensor_vl53l1_top->InitSensor(0x10);
-  sensor_vl53l1_left->InitSensor(0x12);
-  sensor_vl53l1_right->InitSensor(0x14);
+  sensor_vl53l1x_top.InitSensor(0x10);
+  sensor_vl53l1x_left.InitSensor(0x12);
+  sensor_vl53l1x_right.InitSensor(0x14);
 
   //Change Distance mode and timings
-  SetupSingleShot(sensor_vl53l1_top);
-  SetupSingleShot(sensor_vl53l1_left);
-  SetupSingleShot(sensor_vl53l1_right);
+  SetupSingleShot(&sensor_vl53l1x_top);
+  SetupSingleShot(&sensor_vl53l1x_left);
+  SetupSingleShot(&sensor_vl53l1x_right);
 
 
   //Top sensor should be in long distance mode
-  sensor_vl53l1_top->VL53L1X_SetDistanceMode(2);
+  sensor_vl53l1x_top.VL53L1X_SetDistanceMode(2);
 
   // Initialize VL53L1X gesture library.
   tof_gestures_initDIRSWIPE_1(400, 0, 500, &gestureDirSwipeData);
   tof_gestures_initTAP_1(&gestureTapData);
 
   //Start measurement
-  sensor_vl53l1_top->VL53L1X_StartRanging();
-  sensor_vl53l1_left->VL53L1X_StartRanging();
-  sensor_vl53l1_right->VL53L1X_StartRanging();
+  sensor_vl53l1x_top.VL53L1X_StartRanging();
+  sensor_vl53l1x_left.VL53L1X_StartRanging();
+  sensor_vl53l1x_right.VL53L1X_StartRanging();
 
   //Setup MEMS sensors
-  HumTemp  = new HTS221Sensor(&DEV_I2C);
-  PressTemp = new LPS22HHSensor(&DEV_I2C);
-  AccGyr = new LSM6DSOSensor(&DEV_I2C);
-  Acc2 = new LIS2DW12Sensor(&DEV_I2C);
-  Mag = new LIS2MDLSensor(&DEV_I2C);
-  Temp = new STTS751Sensor(&DEV_I2C);
-  Temp->begin();
-  Temp->Enable();
-  Acc2->begin();
-  Acc2->Enable_X();
-  HumTemp->begin();
-  HumTemp->Enable();
-  PressTemp->begin();
-  PressTemp->Enable();
-  AccGyr->begin();
-  AccGyr->Enable_X();
-  AccGyr->Set_X_ODR(4.0f);
-  AccGyr->Enable_G();
-  Mag->begin();
-  Mag->Enable();
+  Temp.begin();
+  Temp.Enable();
+  Acc2.begin();
+  Acc2.Enable_X();
+  HumTemp.begin();
+  HumTemp.Enable();
+  PressTemp.begin();
+  PressTemp.Enable();
+  AccGyr.begin();
+  AccGyr.Enable_X();
+  AccGyr.Set_X_ODR(4.0f);
+  AccGyr.Enable_G();
+  Mag.begin();
+  Mag.Enable();
 
   configC.setEventHandler(BLEWritten, configCB);
 }
@@ -676,9 +595,9 @@ void loop()
   if (envEnable) {
     //Get enviroment data
     float humidity, temperature, pressure;
-    HumTemp->GetHumidity(&humidity);
-    Temp->GetTemperature(&temperature);
-    PressTemp->GetPressure(&pressure);
+    HumTemp.GetHumidity(&humidity);
+    Temp.GetTemperature(&temperature);
+    PressTemp.GetPressure(&pressure);
     MCR_BLUEMS_F2I_2D(pressure, intPart, decPart);
     PressToSend = intPart * 100 + decPart;
     MCR_BLUEMS_F2I_1D(humidity, intPart, decPart);
@@ -693,26 +612,26 @@ void loop()
 
   if (accEnable) {
     // Read accelerometer
-    AccGyr->Get_X_Axes(accelerometer);
+    AccGyr.Get_X_Axes(accelerometer);
   }
   if (gyroEnable) {
     // Read gyroscope
-    AccGyr->Get_G_Axes(gyroscope);
+    AccGyr.Get_G_Axes(gyroscope);
   }
   if (magEnable) {
     // Read magnetometer
-    Mag->GetAxes(magnetometer);
+    Mag.GetAxes(magnetometer);
   }
 
   if (mems_event) {
     mems_event = 0;
     LSM6DSO_Event_Status_t Astatus;
-    AccGyr->Get_X_Event_Status(&Astatus);
+    AccGyr.Get_X_Event_Status(&Astatus);
     uint8_t stat = 0;
 
     if (Astatus.StepStatus) {
       uint16_t step_count = 0;
-      AccGyr->Get_Step_Count(&step_count);
+      AccGyr.Get_Step_Count(&step_count);
       FLIGHT1_PRINTF("Step %d\n", step_count);
 
       Flight1.globalSteps = step_count;
@@ -746,12 +665,12 @@ void loop()
       uint8_t zl = 0;
       uint8_t zh = 0;
       uint8_t OrientationResult = 0;
-      AccGyr->Get_6D_Orientation_XL(&xl);
-      AccGyr->Get_6D_Orientation_XH(&xh);
-      AccGyr->Get_6D_Orientation_YL(&yl);
-      AccGyr->Get_6D_Orientation_YH(&yh);
-      AccGyr->Get_6D_Orientation_ZL(&zl);
-      AccGyr->Get_6D_Orientation_ZH(&zh);
+      AccGyr.Get_6D_Orientation_XL(&xl);
+      AccGyr.Get_6D_Orientation_XH(&xh);
+      AccGyr.Get_6D_Orientation_YL(&yl);
+      AccGyr.Get_6D_Orientation_YH(&yh);
+      AccGyr.Get_6D_Orientation_ZL(&zl);
+      AccGyr.Get_6D_Orientation_ZH(&zh);
       if (xl == 0 && yl == 0 && zl == 0 && xh == 0 && yh == 1 && zh == 0) {
         OrientationResult = 0x04u;
       } else if (xl == 1 && yl == 0 && zl == 0 && xh == 0 && yh == 0 && zh == 0) {
@@ -778,18 +697,18 @@ void loop()
   if (proxEnable) {
     //Get top sensor distance and transmit
     do {
-      sensor_vl53l1_top->VL53L1X_CheckForDataReady(&ready);
+      sensor_vl53l1x_top.VL53L1X_CheckForDataReady(&ready);
     } while (!ready);
 
-    status = sensor_vl53l1_top->VL53L1X_GetRangeStatus(&RangeStatus);
-    status = sensor_vl53l1_top->VL53L1X_GetDistance(&distance);
+    status = sensor_vl53l1x_top.VL53L1X_GetRangeStatus(&RangeStatus);
+    status = sensor_vl53l1x_top.VL53L1X_GetDistance(&distance);
 
     if (status == VL53L1X_ERROR_NONE) {
       Flight1.FlightSense_Distance_Update(distance);
     }
 
     //Clear interrupt
-    status = sensor_vl53l1_top->VL53L1X_ClearInterrupt();
+    status = sensor_vl53l1x_top.VL53L1X_ClearInterrupt();
 
     distance = (RangeStatus == 0 && distance < 1400) ? distance : 1400;
 
@@ -814,7 +733,7 @@ void loop()
       if (left_done == 0) {
         NewDataReady = 0;
         //check measurement data ready
-        int status = sensor_vl53l1_left->VL53L1X_CheckForDataReady(&NewDataReady);
+        int status = sensor_vl53l1x_left.VL53L1X_CheckForDataReady(&NewDataReady);
 
         if (status) {
           SerialPort.println("GetMeasurementDataReady left sensor failed");
@@ -822,7 +741,7 @@ void loop()
         //if ready
         if (NewDataReady) {
           //get status
-          status = sensor_vl53l1_left->VL53L1X_GetRangeStatus(&RangeStatus);
+          status = sensor_vl53l1x_left.VL53L1X_GetRangeStatus(&RangeStatus);
           if (status) {
             SerialPort.println("GetRangeStatus left sensor failed");
           }
@@ -830,7 +749,7 @@ void loop()
           //if distance < 1.3 m
           if (RangeStatus == 0) {
             // we have a valid range.
-            status = sensor_vl53l1_left->VL53L1X_GetDistance(&distance_left);
+            status = sensor_vl53l1x_left.VL53L1X_GetDistance(&distance_left);
             if (status) {
               SerialPort.println("GetDistance left sensor failed");
             }
@@ -839,7 +758,7 @@ void loop()
           }
 
           //restart measurement
-          status = sensor_vl53l1_left->VL53L1X_ClearInterrupt();
+          status = sensor_vl53l1x_left.VL53L1X_ClearInterrupt();
           if (status) {
             SerialPort.println("Restart left sensor failed");
           }
@@ -852,7 +771,7 @@ void loop()
       if (right_done == 0) {
         NewDataReady = 0;
         //check measurement data ready
-        int status = sensor_vl53l1_right->VL53L1X_CheckForDataReady(&NewDataReady);
+        int status = sensor_vl53l1x_right.VL53L1X_CheckForDataReady(&NewDataReady);
 
         if (status) {
           SerialPort.println("GetMeasurementDataReady right sensor failed");
@@ -860,14 +779,14 @@ void loop()
         //if ready
         if (NewDataReady) {
           //get status
-          status = sensor_vl53l1_right->VL53L1X_GetRangeStatus(&RangeStatus);
+          status = sensor_vl53l1x_right.VL53L1X_GetRangeStatus(&RangeStatus);
           if (status) {
             SerialPort.println("GetRangeStatus right sensor failed");
           }
           //if distance < 1.3 m
           if (RangeStatus == 0) {
             // we have a valid range.
-            status = sensor_vl53l1_right->VL53L1X_GetDistance(&distance_right);
+            status = sensor_vl53l1x_right.VL53L1X_GetDistance(&distance_right);
             if (status) {
               SerialPort.println("GetDistance right sensor failed");
             }
@@ -876,7 +795,7 @@ void loop()
           }
 
           //restart measurement
-          status = sensor_vl53l1_right->VL53L1X_ClearInterrupt();
+          status = sensor_vl53l1x_right.VL53L1X_ClearInterrupt();
           if (status) {
             SerialPort.println("Restart right sensor failed");
           }

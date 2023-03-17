@@ -25,7 +25,7 @@ to SensiBLE and see sensors data. The data are also printed to the serial port.
 X-NUCLEO-IKS01A2 or X-NUCLEO-IKS01A3, X-NUCLEO-IDB05A1 and X-NUCLEO-53L1A1 Expansion Boards. The application gather data from the sensor mounted and then communicates
 them via bluetooth to a suitable Android app (such as ST BLE Sensor). The data gathered include enviromental data (temperature, pression, humidity), 
 distance, gesture recognition (tap and directional swipe), acceleration (with accelerometer hardware events) and a gyroscope.
-* Flight2: This application provides an example of usage of a NUCLEO board (it was tested with NUCLEO-F401RE) with
+* Flight1v2: This application provides an example of usage of a NUCLEO board (it was tested with NUCLEO-F401RE) with
 X-NUCLEO-IKS01A3, X-NUCLEO-IDB05A2 and X-NUCLEO-53L1A1 Expansion Boards. The application gathers data from the sensors mounted and then communicates
 them via bluetooth to a suitable Android or iOS app (such as ST BLE Sensor). The data gathered include enviromental data (temperature, pression, humidity), 
 distance, gesture recognition (tap and directional swipe), acceleration (with accelerometer hardware events), a gyroscope and a magnetometer. Note that
