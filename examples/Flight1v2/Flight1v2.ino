@@ -477,7 +477,7 @@ void configCB(BLEDevice unused1, BLECharacteristic unused2)
         break;
       case 'p':
         data ? AccGyr.Enable_Pedometer() : AccGyr.Disable_Pedometer();
-        data ? AccGyr.Step_Counter_Reset() : false;
+        data ? AccGyr.Step_Counter_Reset() : 0;
         break;
       case 'w':
         data ? AccGyr.Enable_Wake_Up_Detection(LSM6DSO_INT2_PIN) : AccGyr.Disable_Wake_Up_Detection();
