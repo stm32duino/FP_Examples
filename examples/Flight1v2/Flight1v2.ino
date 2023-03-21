@@ -266,7 +266,7 @@ class Flight1Service {
       uint8_t buff[LEN_DISTANCE];
 
       /* To discriminate the long proximity range from 53L1A1*/
-      Distance= Distance | (1 << 15);
+      Distance = Distance | (1 << 15);
 
       STORE_LE_16(buff, millis());
       STORE_LE_16(buff + 2, Distance);
@@ -461,18 +461,35 @@ void configCB(BLEDevice unused1, BLECharacteristic unused2)
   uint8_t data = buf[5];
   uint8_t signalEvents [4] = {0x00, 0x00, 0x04, 0x00};
 
-  if (!memcmp(buf, signalEvents, 4) && data) {
-    enableAllFunc();
+  if (!memcmp(buf, signalEvents, 4)) {
     switch (command) {
-      case 'o':
-        Flight1.shortMode = true;
+      case 'm':
+        data ? enableAllFunc() : disableAllFunc();
         break;
-      default:
-        Flight1.shortMode = false;
+      case 'f':
+        data ? AccGyr.Enable_Free_Fall_Detection(LSM6DSO_INT1_PIN) : AccGyr.Disable_Free_Fall_Detection();
+        break;
+      case 'd':
+        data ? AccGyr.Enable_Double_Tap_Detection(LSM6DSO_INT1_PIN) : AccGyr.Disable_Double_Tap_Detection();
+        break;
+      case 's':
+        data ? AccGyr.Enable_Single_Tap_Detection(LSM6DSO_INT1_PIN) : AccGyr.Disable_Single_Tap_Detection();
+        break;
+      case 'p':
+        data ? AccGyr.Enable_Pedometer() : AccGyr.Disable_Pedometer();
+        data ? AccGyr.Step_Counter_Reset() : 0;
+        break;
+      case 'w':
+        data ? AccGyr.Enable_Wake_Up_Detection(LSM6DSO_INT2_PIN) : AccGyr.Disable_Wake_Up_Detection();
+        break;
+      case 't':
+        data ? AccGyr.Enable_Tilt_Detection(LSM6DSO_INT1_PIN) : AccGyr.Disable_Tilt_Detection();
+        break;
+      case 'o':
+        data ? Flight1.shortMode = true : Flight1.shortMode = false;
+        data ? AccGyr.Enable_6D_Orientation(LSM6DSO_INT1_PIN) : AccGyr.Disable_6D_Orientation();;
         break;
     }
-  } else {
-    disableAllFunc();
   }
 
   // Either way, respond by repeating the command
@@ -564,6 +581,7 @@ void setup()
   Mag.begin();
   Mag.Enable();
 
+  disableAllFunc();
   configC.setEventHandler(BLEWritten, configCB);
 }
 
