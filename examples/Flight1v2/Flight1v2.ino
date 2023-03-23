@@ -2,8 +2,8 @@
  ******************************************************************************
    @file    Flight1v2.ino
    @author  STMicroelectronics
-   @version V1.0.0
-   @date    15 March 2023
+   @version V1.1.0
+   @date    23 March 2023
    @brief   Arduino demo application for the STMicrolectronics
             X-NUCLEO-IKS01A3, X-NUCLEO-53L1A1
             and X-NUCLEO-IDB05A1
@@ -56,6 +56,14 @@
 #include <LIS2MDLSensor.h>
 #include <LSM6DSOSensor.h>
 #include <STTS751Sensor.h>
+
+#if (__CORTEX_M == 0U)
+#include "motion_fx_cm0p.h"
+#else
+#include "motion_fx.h"
+#endif
+#include "LSM6DSOSensor.h"
+#include "LIS2MDLSensor.h"
 
 #include <STM32duinoBLE.h>
 
@@ -125,6 +133,46 @@ volatile int mems_event = 0;
 
 #define FEATURE_MASK_ACC_EVENTS 0x00000400u
 
+// Sensor Fusion
+#define ALGO_FREQ  100U /* Algorithm frequency 100Hz */
+#define ALGO_PERIOD  (1000U / ALGO_FREQ) /* Algorithm period [ms] */
+#define MOTION_FX_ENGINE_DELTATIME  0.01f     // Originally 0.01f
+#define FROM_MG_TO_G  0.001f
+#define FROM_G_TO_MG  1000.0f
+#define FROM_MDPS_TO_DPS  0.001f
+#define FROM_DPS_TO_MDPS  1000.0f
+#define FROM_MGAUSS_TO_UT50  (0.1f/50.0f)
+#define FROM_UT50_TO_MGAUSS  500.0f
+
+#define STATE_SIZE                      (size_t)(2432)
+
+#define SAMPLETODISCARD                 15
+
+#define GBIAS_ACC_TH_SC                 (2.0f*0.000765f)
+#define GBIAS_GYRO_TH_SC                (2.0f*0.002f)
+#define GBIAS_MAG_TH_SC                 (2.0f*0.001500f)
+
+#define DECIMATION                      1U
+#define FUSION_FRAME                    30      // Approximately 60 fps/ups
+
+/* Private variables ---------------------------------------------------------*/
+#if !(__CORTEX_M == 0U)
+static MFX_knobs_t iKnobs;
+static MFX_knobs_t *ipKnobs = &iKnobs;
+static uint8_t mfxstate[STATE_SIZE];
+#endif
+
+static volatile int sampleToDiscard = SAMPLETODISCARD;
+static int discardedCount = 0;
+
+static volatile uint32_t TimeStamp = 0;
+
+volatile uint8_t fusion_flag;
+
+bool mag_calibrated = false;
+
+HardwareTimer *MyTim;
+
 // Distance components
 STMPE1600DigiOut xshutdown_top(&DEV_I2C, GPIO_15, (0x42 * 2));
 STMPE1600DigiOut xshutdown_left(&DEV_I2C, GPIO_14, (0x43 * 2));
@@ -147,6 +195,12 @@ LPS22HHSensor PressTemp(&DEV_I2C);
 HTS221Sensor HumTemp(&DEV_I2C);
 STTS751Sensor Temp(&DEV_I2C);
 
+// MEMS variables
+int32_t accelerometer[3];
+int32_t gyroscope[3];
+int32_t magnetometer[3];
+int32_t MagOffset[3];
+
 // STRING UUIDs
 const char *uuidSensorService =   "00000000-0001-11e1-9ab4-0002a5d5c51b";
 const char *uuidConfigService =   "00000000-000f-11e1-9ab4-0002a5d5c51b";
@@ -160,6 +214,7 @@ const char *uuidProxChar =        "02000000-0001-11e1-ac36-0002a5d5c51b";
 const char *uuidGestureChar =     "00000004-0001-11e1-ac36-0002a5d5c51b";
 const char *uuidAccEventChar =    "00000400-0001-11e1-ac36-0002a5d5c51b";
 const char *uuidConfigChar =      "00000002-000f-11e1-ac36-0002a5d5c51b";
+const char *uuidFusionChar =      "00000100-0001-11e1-ac36-0002a5d5c51b";
 
 #define LEN_DISTANCE 4
 #define LEN_GESTURE 3
@@ -170,6 +225,7 @@ const char *uuidConfigChar =      "00000002-000f-11e1-ac36-0002a5d5c51b";
 #define LEN_PRESS 6
 #define LEN_HUM 4
 #define LEN_TEMP 4
+#define LEN_FUSION 20
 #define LEN_CFG 20
 
 // ABLE services and characteristics
@@ -187,6 +243,8 @@ BLECharacteristic accC(uuidAccChar, BLERead | BLENotify, LEN_ACC);
 BLECharacteristic accEventC(uuidAccEventChar, BLERead | BLENotify, LEN_ACCEVENT);
 BLECharacteristic gyroC(uuidGyroChar, BLERead | BLENotify, LEN_GYRO);
 BLECharacteristic magC(uuidMagChar, BLERead | BLENotify, LEN_MAG);
+
+BLECharacteristic fusionC(uuidFusionChar, BLERead | BLENotify, LEN_FUSION);
 
 BLECharacteristic configC(uuidConfigChar, BLENotify | BLEWrite, LEN_CFG);
 
@@ -214,7 +272,7 @@ class Flight1Service {
       uint8_t addr[6] = {0xff};
       BLE.getRandomAddress(addr);
 
-#define FEATURE_MASK 0x02,0xfc,0x04,0x15
+#define FEATURE_MASK 0x02,0xfc,0x05,0x15
 
       uint8_t data [14] = {0x0d, 0xff, 0x01, 0x80, FEATURE_MASK};
 
@@ -350,6 +408,21 @@ class Flight1Service {
       return ret;
     }
 
+    int Fusion_Update(int16_t qi, int16_t qj, int16_t qk)
+    {
+      uint8_t buf[LEN_FUSION] = {0x00};
+      STORE_LE_16(buf, millis());
+      STORE_LE_16(buf + 2, qi);
+      STORE_LE_16(buf + 4, qj);
+      STORE_LE_16(buf + 6, qk);
+
+
+
+      int ret = 0;
+      ret += fusionC.writeValue(buf, 8);
+      return ret;
+    }
+
     int Config_Notify(uint8_t Feature [4], uint8_t Command, uint8_t data)
     {
       uint8_t buff[2 + 4 + 1 + 1];
@@ -382,6 +455,7 @@ class Flight1Service {
       sensorService.addCharacteristic(accEventC);
       sensorService.addCharacteristic(gyroC);
       sensorService.addCharacteristic(magC);
+      sensorService.addCharacteristic(fusionC);
 
       configService.addCharacteristic(configC);
 
@@ -448,7 +522,10 @@ void INT2Event_cb()
   mems_event = 1;
 }
 
-
+void fusion_update(void)
+{
+  fusion_flag = 1;
+}
 
 void configCB(BLEDevice unused1, BLECharacteristic unused2)
 {
@@ -506,13 +583,24 @@ bool eventEnable = false;
 bool accEnable = false;
 bool gyroEnable = false;
 bool magEnable = false;
+bool fusionEnable = false;
+
+long fusionTime = 0;
+long currTime = 0;
+long lastTime = 0;
 
 void setup()
 {
+  // Initialize serial port
   SerialPort.begin(115200);
-  DEV_I2C.begin();
+  while (!SerialPort);
 
-  pinMode(LED_BUILTIN, OUTPUT); //D13 LED
+  // Initialize I2C bus
+  DEV_I2C.begin();
+  DEV_I2C.setClock(400000);
+
+  //D13 LED
+  pinMode(LED_BUILTIN, OUTPUT);
 
   //Interrupts.
   attachInterrupt(INT_1, INT1Event_cb, RISING);
@@ -552,7 +640,6 @@ void setup()
   SetupSingleShot(&sensor_vl53l1x_left);
   SetupSingleShot(&sensor_vl53l1x_right);
 
-
   //Top sensor should be in long distance mode
   sensor_vl53l1x_top.VL53L1X_SetDistanceMode(2);
 
@@ -575,12 +662,68 @@ void setup()
   PressTemp.begin();
   PressTemp.Enable();
   AccGyr.begin();
+  AccGyr.Set_X_ODR((float)ALGO_FREQ);
+  AccGyr.Set_X_FS(4);
   AccGyr.Enable_X();
-  AccGyr.Set_X_ODR(4.0f);
+  AccGyr.Set_G_ODR((float)ALGO_FREQ);
+  AccGyr.Set_G_FS(2000);
   AccGyr.Enable_G();
   Mag.begin();
+  Mag.SetOutputDataRate((float)ALGO_FREQ);
   Mag.Enable();
+  delay(10);
 
+  // Initialize sensor fusion
+#if (__CORTEX_M == 0U)
+  MotionFX_CM0P_initialize(MFX_CM0P_MCU_STM32);
+  MotionFX_CM0P_setOrientation("seu", "seu", "neu");
+  MotionFX_CM0P_enable_gbias(MFX_CM0P_ENGINE_ENABLE);
+  MotionFX_CM0P_enable_euler(MFX_CM0P_ENGINE_ENABLE);
+  MotionFX_CM0P_enable_6X(MFX_CM0P_ENGINE_DISABLE);
+  MotionFX_CM0P_enable_9X(MFX_CM0P_ENGINE_ENABLE);
+
+  /* Enable magnetometer calibration */
+  MotionFX_CM0P_MagCal_init(ALGO_PERIOD, 1);
+#else
+  MotionFX_initialize((MFXState_t *)mfxstate);
+
+  MotionFX_getKnobs(mfxstate, ipKnobs);
+
+  ipKnobs->acc_orientation[0] = 's';
+  ipKnobs->acc_orientation[1] = 'e';
+  ipKnobs->acc_orientation[2] = 'u';
+  ipKnobs->gyro_orientation[0] = 's';
+  ipKnobs->gyro_orientation[1] = 'e';
+  ipKnobs->gyro_orientation[2] = 'u';
+  ipKnobs->mag_orientation[0] = 'n';
+  ipKnobs->mag_orientation[1] = 'e';
+  ipKnobs->mag_orientation[2] = 'u';
+
+  ipKnobs->gbias_acc_th_sc = GBIAS_ACC_TH_SC;
+  ipKnobs->gbias_gyro_th_sc = GBIAS_GYRO_TH_SC;
+  ipKnobs->gbias_mag_th_sc = GBIAS_MAG_TH_SC;
+
+  ipKnobs->output_type = MFX_ENGINE_OUTPUT_ENU;
+  ipKnobs->LMode = 1;
+  ipKnobs->modx = DECIMATION;
+
+  MotionFX_setKnobs(mfxstate, ipKnobs);
+  MotionFX_enable_6X(mfxstate, MFX_ENGINE_DISABLE);
+  MotionFX_enable_9X(mfxstate, MFX_ENGINE_ENABLE);
+
+  /* Enable magnetometer calibration */
+  MotionFX_MagCal_init(ALGO_PERIOD, 1);
+#endif
+
+  MyTim = new HardwareTimer(TIM3);
+  MyTim->setOverflow(ALGO_FREQ, HERTZ_FORMAT);
+  MyTim->attachInterrupt(fusion_update);
+  MyTim->resume();
+
+  currTime = millis();
+  lastTime = millis();
+
+  // Prepare functionality callback
   disableAllFunc();
   configC.setEventHandler(BLEWritten, configCB);
 }
@@ -609,6 +752,145 @@ void loop()
   magEnable = magC.subscribed();
   eventEnable = accEventC.subscribed();
   proxEnable = distanceC.subscribed() || gestureC.subscribed();
+  fusionEnable = fusionC.subscribed();
+
+  if (fusionEnable) {
+    if (!mag_calibrated) {
+      if (fusion_flag) {
+        float ans_float;
+#if (__CORTEX_M == 0U)
+        MFX_CM0P_MagCal_input_t mag_data_in;
+        MFX_CM0P_MagCal_output_t mag_data_out;
+#else
+        MFX_MagCal_input_t mag_data_in;
+        MFX_MagCal_output_t mag_data_out;
+#endif
+        fusion_flag = 0;
+        Mag.GetAxes(magnetometer);
+#if (__CORTEX_M == 0U)
+        mag_data_in.Mag[0] = (float)magnetometer[0] * FROM_MGAUSS_TO_UT50;
+        mag_data_in.Mag[1] = (float)magnetometer[1] * FROM_MGAUSS_TO_UT50;
+        mag_data_in.Mag[2] = (float)magnetometer[2] * FROM_MGAUSS_TO_UT50;
+        MotionFX_CM0P_MagCal_run(&mag_data_in);
+        MotionFX_CM0P_MagCal_getParams(&mag_data_out);
+
+        if (mag_data_out.CalQuality == MFX_CM0P_CALQSTATUSBEST) {
+          mag_calibrated = true;
+          ans_float = (mag_data_out.HI_Bias[0] * FROM_UT50_TO_MGAUSS);
+          MagOffset[0] = (int32_t)ans_float;
+          ans_float = (mag_data_out.HI_Bias[1] * FROM_UT50_TO_MGAUSS);
+          MagOffset[1] = (int32_t)ans_float;
+          ans_float = (mag_data_out.HI_Bias[2] * FROM_UT50_TO_MGAUSS);
+          MagOffset[2] = (int32_t)ans_float;
+          /* Disable magnetometer calibration */
+          MotionFX_CM0P_MagCal_init(ALGO_PERIOD, 0);
+          digitalWrite(LED_BUILTIN, HIGH);
+          SerialPort.println("Magnetomer calibration done!");
+        }
+#else
+        mag_data_in.mag[0] = (float)magnetometer[0] * FROM_MGAUSS_TO_UT50;
+        mag_data_in.mag[1] = (float)magnetometer[1] * FROM_MGAUSS_TO_UT50;
+        mag_data_in.mag[2] = (float)magnetometer[2] * FROM_MGAUSS_TO_UT50;
+        mag_data_in.time_stamp = (int)TimeStamp;
+
+        TimeStamp += (uint32_t)ALGO_PERIOD;
+
+        MotionFX_MagCal_run(&mag_data_in);
+        MotionFX_MagCal_getParams(&mag_data_out);
+
+        if (mag_data_out.cal_quality == MFX_MAGCALGOOD) {
+          mag_calibrated = true;
+          ans_float = (mag_data_out.hi_bias[0] * FROM_UT50_TO_MGAUSS);
+          MagOffset[0] = (int32_t)ans_float;
+          ans_float = (mag_data_out.hi_bias[1] * FROM_UT50_TO_MGAUSS);
+          MagOffset[1] = (int32_t)ans_float;
+          ans_float = (mag_data_out.hi_bias[2] * FROM_UT50_TO_MGAUSS);
+          MagOffset[2] = (int32_t)ans_float;
+          /* Disable magnetometer calibration */
+          MotionFX_MagCal_init(ALGO_PERIOD, 0);
+          digitalWrite(LED_BUILTIN, HIGH);
+          Serial.println("Magnetomer calibration done!");
+        }
+#endif
+      }
+    } else {
+      if (fusion_flag) {
+#if (__CORTEX_M == 0U)
+        MFX_CM0P_input_t data_in;
+        MFX_CM0P_output_t data_out;
+#else
+        MFX_input_t data_in;
+        MFX_output_t data_out;
+#endif
+        currTime = millis();
+        float delta_time = ((float)(currTime - lastTime)) / 1000.0f; // dT is in fractions of a second, so difference/1000 milliseconds
+        lastTime = currTime;
+        fusion_flag = 0;
+        AccGyr.Get_X_Axes(accelerometer);
+        AccGyr.Get_G_Axes(gyroscope);
+        Mag.GetAxes(magnetometer);
+
+        /* Convert angular velocity from [mdps] to [dps] */
+        data_in.gyro[0] = (float)gyroscope[0] * FROM_MDPS_TO_DPS;
+        data_in.gyro[1] = (float)gyroscope[1] * FROM_MDPS_TO_DPS;
+        data_in.gyro[2] = (float)gyroscope[2] * FROM_MDPS_TO_DPS;
+
+        /* Convert acceleration from [mg] to [g] */
+        data_in.acc[0] = (float)accelerometer[0] * FROM_MG_TO_G;
+        data_in.acc[1] = (float)accelerometer[1] * FROM_MG_TO_G;
+        data_in.acc[2] = (float)accelerometer[2] * FROM_MG_TO_G;
+
+        /* Convert magnetic field intensity from [mGauss] to [uT / 50] */
+        data_in.mag[0] = (float)(magnetometer[0] - MagOffset[0]) * FROM_MGAUSS_TO_UT50;
+        data_in.mag[1] = (float)(magnetometer[1] - MagOffset[1]) * FROM_MGAUSS_TO_UT50;
+        data_in.mag[2] = (float)(magnetometer[2] - MagOffset[2]) * FROM_MGAUSS_TO_UT50;
+
+        if (discardedCount == sampleToDiscard) {
+#if (__CORTEX_M == 0U)
+          MotionFX_CM0P_update(&data_out, &data_in, delta_time);
+#else
+          MotionFX_propagate(mfxstate, &data_out, &data_in, &delta_time);
+          MotionFX_update(mfxstate, &data_out, &data_in, &delta_time, NULL);
+#endif
+
+          // Get data
+#if (__CORTEX_M == 0U)
+          double qi = data_out.quaternion_6X[0];
+          double qj = data_out.quaternion_6X[1];
+          double qk = data_out.quaternion_6X[2];
+          double qs = data_out.quaternion_6X[3];
+#else
+          double qi = data_out.quaternion[0];
+          double qj = data_out.quaternion[1];
+          double qk = data_out.quaternion[2];
+          double qs = data_out.quaternion[3];
+
+#endif
+
+          // Do math on data
+          int32_t iqi, iqj, iqk;
+
+          if (qs < 0) {
+            iqi = (int32_t)(qi * (-10000));
+            iqj = (int32_t)(qj * (-10000));
+            iqk = (int32_t)(qk * (-10000));
+          } else {
+            iqi = (int32_t)(qi * (10000));
+            iqj = (int32_t)(qj * (10000));
+            iqk = (int32_t)(qk * (10000));
+          }
+
+          // Transmit data
+          if ((millis() - fusionTime > FUSION_FRAME)) {
+            Flight1.Fusion_Update(iqi, iqj, iqk);
+            fusionTime = millis();
+          }
+        } else {
+          discardedCount++;
+        }
+      }
+    }
+  }
 
   if (envEnable) {
     //Get enviroment data
@@ -623,10 +905,6 @@ void loop()
     MCR_BLUEMS_F2I_1D(temperature, intPart, decPart);
     TempToSend = intPart * 10 + decPart;
   }
-
-  int32_t accelerometer[3];
-  int32_t gyroscope[3];
-  int32_t magnetometer[3];
 
   if (accEnable) {
     // Read accelerometer

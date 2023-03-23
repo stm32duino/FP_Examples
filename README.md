@@ -28,7 +28,7 @@ distance, gesture recognition (tap and directional swipe), acceleration (with ac
 * Flight1v2: This application provides an example of usage of a NUCLEO board (it was tested with NUCLEO-F401RE) with
 X-NUCLEO-IKS01A3, X-NUCLEO-IDB05A2 and X-NUCLEO-53L1A1 Expansion Boards. The application gathers data from the sensors mounted and then communicates
 them via bluetooth to a suitable Android or iOS app (such as ST BLE Sensor). The data gathered include enviromental data (temperature, pression, humidity), 
-distance, gesture recognition (tap and directional swipe), acceleration (with accelerometer hardware events), a gyroscope and a magnetometer. Note that
+distance, gesture recognition (tap and directional swipe), acceleration (with accelerometer hardware events), a gyroscope and a magnetometer. In addition, 9x sensor fusion functionality for accurate orientation detection is also available. Note that
 unlike the Flight1 application, this one makes use of the STM32duinoBLE API instead of SPBTLE-RF, and does not support X-NUCLEO-IKS01A2 boards. In addition, an up-to-date version of the STM32duinoBLE library is required, as this application uses some of the newest features.
 * IKS01A3_S2LP_P2P_Demo: This application provides a simple example of usage of two NUCLEO boards (it was tested with NUCLEO-F401RE and NUCLEO-L053R8) 
 with a X-NUCLEO-IKS01A3 and one among X-NUCLEO-S2868A1, X-NUCLEO-S2868A2 and X-NUCLEO-S2915A1. It shows how to send and receive all the sensor data 
@@ -66,6 +66,7 @@ The FP_Examples library requires the following STM32duino libraries (link to the
 * STM32duino M95640-R: https://github.com/stm32duino/M95640-R
 * STM32duino X-NUCLEO-IKS02A1 Audio: https://github.com/stm32duino/X-NUCLEO-IKS02A1-Audio
 * STM32duinoBLE: https://github.com/stm32duino/STM32duinoBLE
+* STM32duino MotionFX: https://github.com/stm32duino/MotionFX
 
 ## Documentation
 
