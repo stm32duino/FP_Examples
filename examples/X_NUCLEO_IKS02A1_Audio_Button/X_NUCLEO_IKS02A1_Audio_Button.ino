@@ -51,7 +51,7 @@ void setup() {
 
   /* SD Card Initialization */
   if (!SD.begin(12000000, 10)) {
-    Serial.println("Failed to inizialize SD!\n");
+    Serial.println("Failed to initialize SD!\n");
     while(1);
   }
   
@@ -100,7 +100,7 @@ void loop() {
       }
     
       if (!(myFile = SD.open(file_name, FILE_WRITE))) {
-        Serial.println("Failed to Inizialize File\n");
+        Serial.println("Failed to initialize File\n");
         while(1);
       }
     

@@ -294,7 +294,7 @@ class Flight1Service {
       return ret;
     }
 
-    // Update enviromental data
+    // Update environmental data
     int Environmental_Update(int32_t Press, uint16_t Hum, int16_t Temp)
     {
       uint8_t pBuff[LEN_PRESS];
@@ -893,7 +893,7 @@ void loop()
   }
 
   if (envEnable) {
-    //Get enviroment data
+    //Get environment data
     float humidity, temperature, pressure;
     HumTemp.GetHumidity(&humidity);
     Temp.GetTemperature(&temperature);

@@ -26,7 +26,7 @@ void WaveClass::header_init(uint8_t *pHeader, uint32_t SampleRate, uint32_t Bits
 
   /* Write the file length ---------------------------------------------------
   /* The sampling time: this value will be be written back at the end of the
-  *  recording opearation.
+  *  recording operation.
   *  Example: 44 Bytes = 0x000A17FC, byte[7]=0x00, byte[4]=0xFC
   */
   pHeader[4] = 0x2C;
@@ -108,7 +108,7 @@ void WaveClass::header_update(uint8_t *pHeader, uint32_t *byteswritten)
 {
   /* Write the file length ----------------------------------------------------*/
   /* The sampling time: this value will be be written back at the end of the
-  recording opearation.  Example: 661500 Btyes = 0x000A17FC, byte[7]=0x00, byte[4]=0xFC */
+  recording operation.  Example: 661500 Bytes = 0x000A17FC, byte[7]=0x00, byte[4]=0xFC */
   pHeader[4] = (uint8_t) * byteswritten; //<-- man mano che scrivo salva qua dentro i byte scritti
   pHeader[5] = (uint8_t)(*byteswritten >> 8);
   pHeader[6] = (uint8_t)(*byteswritten >> 16);

@@ -95,7 +95,7 @@
 volatile int mems_event = 0;
 
 volatile uint8_t AccGyroMag_Enable = 0;
-volatile uint8_t Enviroment_Enable = 0;
+volatile uint8_t Environment_Enable = 0;
 volatile uint8_t Distance_Enable = 0;
 volatile uint8_t Gestures_Enable = 0;
 
@@ -360,7 +360,7 @@ fail:
       return 0;
    }
 
-   /*Update enviromental data (press*/
+   /*Update environmental data (press*/
    tBleStatus Environmental_Update(int32_t Press,uint16_t Hum,int16_t Temp)
    {
       tBleStatus ret;
@@ -656,12 +656,12 @@ fail:
    uint8_t  EnvironmentalCharSize=2; /* Size for Environmental BLE characteristic */
    uint8_t manuf_data[30] =
    {
-      2  /* lenght*/,0x0A,0x00 /* 0 dBm */, // Trasmission Power
-      8  /* lenght*/,0x09,NAME_FLIGHT1, // Complete Name
-      13 /* lenght*/ ,0xFF,0x01,/*SKD version */
+      2  /* length*/,0x0A,0x00 /* 0 dBm */, // Transmission Power
+      8  /* length*/,0x09,NAME_FLIGHT1, // Complete Name
+      13 /* length*/ ,0xFF,0x01,/*SKD version */
       0x80, /* NUCLEO-Board */
       0x02, /* Prox */
-      0xE0, /* ACC+Gyro+Mag+Pres+Hum+Temp */
+      0xE0, /* ACC+Gyro+Mag+Press+Hum+Temp */
       0x00, /* SensorFusionShort */
       0x00, /* SensorFusionFloat */
       0x00, /* BLE MAC start */
@@ -921,13 +921,13 @@ void Attribute_Modified_CB(uint16_t attr_handle, uint8_t * att_data, uint8_t dat
    {
       if (att_data[0] == 01)
       {
-         Enviroment_Enable = 1;
-         FLIGHT1_PRINTF("Enviroment enabled\n");
+         Environment_Enable = 1;
+         FLIGHT1_PRINTF("Environment enabled\n");
       }
       else if (att_data[0] == 0)
       {
-         Enviroment_Enable = 0;
-         FLIGHT1_PRINTF("Enviroment disabled\n");
+         Environment_Enable = 0;
+         FLIGHT1_PRINTF("Environment disabled\n");
       }
    }
    else if(attr_handle == GestureDetCharHandle + 2)
@@ -1169,9 +1169,9 @@ void loop()
    BTLE.update();
    if(Flight1.connected)
    {
-      //Get enviroment data
+      //Get environment data
       float humidity, temperature, pressure;
-      if (Enviroment_Enable)
+      if (Environment_Enable)
       {
          HumTemp.GetHumidity(&humidity);
 #ifdef USE_IKS01A3
@@ -1452,7 +1452,7 @@ void loop()
       }
 
       //Send all mems sensors data
-      if (Enviroment_Enable)
+      if (Environment_Enable)
       {
          Flight1.Environmental_Update(PressToSend, HumToSend, TempToSend);
          delay(30);

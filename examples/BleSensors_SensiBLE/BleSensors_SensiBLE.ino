@@ -209,7 +209,7 @@ void Print_Sensors()
   SerialPort.print("Temp[C] (HTS221): ");
   SerialPort.println(temperature, 2);
   // Print LPS25 data
-  SerialPort.print("Pres[hPa]: ");
+  SerialPort.print("Press[hPa]: ");
   SerialPort.println(pressure, 2);
   SerialPort.print("TempP[C] (LPS25): ");
   SerialPort.println(temperatureP, 2);

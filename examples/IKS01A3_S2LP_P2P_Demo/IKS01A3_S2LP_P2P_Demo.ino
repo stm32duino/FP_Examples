@@ -241,7 +241,7 @@ void recv_data(void)
   SerialPort.print(*((float *)(&read_buf[0])), 2);
   SerialPort.print(" | Temp[C]: ");
   SerialPort.print(*((float *)(&read_buf[sizeof(float)])), 2);
-  SerialPort.print(" | Pres[hPa]: ");
+  SerialPort.print(" | Press[hPa]: ");
   SerialPort.print(*((float *)(&read_buf[2*sizeof(float)])), 2);
   SerialPort.print(" | Temp2[C]: ");
   SerialPort.print(*((float *)(&read_buf[3*sizeof(float)])), 2);
