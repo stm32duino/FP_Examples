@@ -2,10 +2,10 @@
  ******************************************************************************
    @file    Flight1v2.ino
    @author  STMicroelectronics
-   @version V1.1.0
-   @date    23 March 2023
+   @version V1.2.0
+   @date    30 March 2023
    @brief   Arduino demo application for the STMicrolectronics
-            X-NUCLEO-IKS01A3, X-NUCLEO-53L1A1
+            X-NUCLEO-IKS01A3, X-NUCLEO-53L1A1, X-NUCLEO-BNRG2A1
             and X-NUCLEO-IDB05A1
  ******************************************************************************
    @attention
@@ -70,18 +70,31 @@
 #define DEV_I2C Wire
 #define SerialPort Serial
 
-//#define DEBUG_MODE
-
 #define INT_1 4
 #define INT_2 5
 
+//#define DEBUG_MODE
+
+//#define USE_BNRG2A1     // By default, the IDB05A2 is used. Uncomment this to use the BNRG2A1 instead.
+
 // BLE boards
 /* Shield IDB05A2 with SPI clock on D3 */
+#ifndef USE_BNRG2A1
 SPIClass SpiHCI(D11, D12, D3);
 HCISpiTransportClass HCISpiTransport(SpiHCI, BLUENRG_M0, A1, A0, D7, 8000000, SPI_MODE0);
 #if !defined(FAKE_BLELOCALDEVICE)
 BLELocalDevice BLEObj(&HCISpiTransport);
 BLELocalDevice &BLE = BLEObj;
+#endif
+#endif
+
+#ifdef USE_BNRG2A1
+SPIClass SpiHCI(D11, D12, D3);
+HCISpiTransportClass HCISpiTransport(SpiHCI, BLUENRG_M2SP, A1, A0, D7, 1000000, SPI_MODE1);
+#if !defined(FAKE_BLELOCALDEVICE)
+BLELocalDevice BLEObj(&HCISpiTransport);
+BLELocalDevice &BLE = BLEObj;
+#endif
 #endif
 
 // Interrupts
@@ -153,7 +166,7 @@ volatile int mems_event = 0;
 #define GBIAS_MAG_TH_SC                 (2.0f*0.001500f)
 
 #define DECIMATION                      1U
-#define FUSION_FRAME                    30      // Approximately 60 fps/ups
+#define FUSION_FRAME                    30      // Approximately 30 fps/ups
 
 /* Private variables ---------------------------------------------------------*/
 #if !(__CORTEX_M == 0U)
@@ -388,7 +401,7 @@ class Flight1Service {
       return ret;
     }
 
-    int AccEvent_Notify(uint16_t steps, uint8_t event)
+    int AccEvent_Notify(uint8_t event)
     {
       uint8_t buff_2[2 + 1];    // Only event
       uint8_t buff_4[5];        // Event and pedometer
@@ -396,13 +409,13 @@ class Flight1Service {
       int ret = 0;
 
       if (shortMode) {
-        STORE_LE_16(buff_4, millis());
+        STORE_LE_16(buff_2, millis());
         buff_2[2] = event;
         ret += accEventC.writeValue(buff_2, 2 + 1);
       } else {
         STORE_LE_16(buff_4, millis());
         buff_4[2] = event;
-        STORE_LE_16(buff_4 + 3, steps);
+        STORE_LE_16(buff_4 + 3, globalSteps);
         ret += accEventC.writeValue(buff_4, LEN_ACCEVENT);
       }
       return ret;
@@ -527,11 +540,9 @@ void fusion_update(void)
   fusion_flag = 1;
 }
 
-void configCB(BLEDevice unused1, BLECharacteristic unused2)
+void configCB(BLEDevice, BLECharacteristic)
 {
   uint8_t buf[LEN_CFG];
-  (void)unused1;
-  (void)unused2;
 
   configC.readValue(buf, LEN_CFG);
   char command = buf[4];
@@ -564,7 +575,7 @@ void configCB(BLEDevice unused1, BLECharacteristic unused2)
         break;
       case 'o':
         data ? Flight1.shortMode = true : Flight1.shortMode = false;
-        data ? AccGyr.Enable_6D_Orientation(LSM6DSO_INT1_PIN) : AccGyr.Disable_6D_Orientation();;
+        data ? AccGyr.Enable_6D_Orientation(LSM6DSO_INT1_PIN) : AccGyr.Disable_6D_Orientation();
         break;
     }
   }
@@ -579,7 +590,6 @@ int gestureGuard = 0;
 
 bool envEnable = false;
 bool proxEnable = false;
-bool eventEnable = false;
 bool accEnable = false;
 bool gyroEnable = false;
 bool magEnable = false;
@@ -588,6 +598,8 @@ bool fusionEnable = false;
 long fusionTime = 0;
 long currTime = 0;
 long lastTime = 0;
+
+long upsTiming = 0;
 
 void setup()
 {
@@ -746,13 +758,24 @@ void loop()
 
   BLE.poll();
 
-  envEnable = pressC.subscribed() || tempC.subscribed() || humC.subscribed();
-  accEnable = accC.subscribed();
-  gyroEnable = gyroC.subscribed();
-  magEnable = magC.subscribed();
-  eventEnable = accEventC.subscribed();
-  proxEnable = distanceC.subscribed() || gestureC.subscribed();
-  fusionEnable = fusionC.subscribed();
+  // If using the slower bluetooth chip BNRG2A1, we slow down the update rate to 30 ups
+#ifdef USE_BNRG2A1
+  // Calculate how much time passed since the last update
+  bool newUpdate = (millis() - upsTiming) > 33 ;    // If it is over 33 milliseconds, activate the update flag
+  if (millis() - upsTiming > 33) {
+    upsTiming = millis();                         // Also update the time of last update to current time
+  }
+  // Otherwise, we place no limit on update rate
+#else
+  bool newUpdate = true;
+#endif
+
+  envEnable = (pressC.subscribed() || tempC.subscribed() || humC.subscribed()) && newUpdate;
+  accEnable = accC.subscribed() && newUpdate;
+  gyroEnable = gyroC.subscribed() && newUpdate;
+  magEnable = magC.subscribed() && newUpdate;
+  proxEnable = (distanceC.subscribed() || gestureC.subscribed()) && newUpdate;
+  fusionEnable = fusionC.subscribed() && newUpdate;
 
   if (fusionEnable) {
     if (!mag_calibrated) {
@@ -809,7 +832,7 @@ void loop()
           /* Disable magnetometer calibration */
           MotionFX_MagCal_init(ALGO_PERIOD, 0);
           digitalWrite(LED_BUILTIN, HIGH);
-          Serial.println("Magnetomer calibration done!");
+          SerialPort.println("Magnetomer calibration done!");
         }
 #endif
       }
@@ -919,6 +942,7 @@ void loop()
     Mag.GetAxes(magnetometer);
   }
 
+  // Do note that this is interrupt-based: it does NOT follow the timing rules of all other processes
   if (mems_event) {
     mems_event = 0;
     LSM6DSO_Event_Status_t Astatus;
@@ -987,7 +1011,7 @@ void loop()
       FLIGHT1_PRINTF("Wake Up\n");
       stat = stat | 0x80u;
     }
-    Flight1.AccEvent_Notify(Flight1.globalSteps, stat);
+    Flight1.AccEvent_Notify(stat);
   }
 
   if (proxEnable) {
