@@ -25,8 +25,8 @@ to SensiBLE and see sensors data. The data are also printed to the serial port.
 X-NUCLEO-IKS01A2 or X-NUCLEO-IKS01A3, X-NUCLEO-IDB05A1 and X-NUCLEO-53L1A1 Expansion Boards. The application gather data from the sensor mounted and then communicates
 them via bluetooth to a suitable Android app (such as ST BLE Sensor). The data gathered include environmental data (temperature, pression, humidity), 
 distance, gesture recognition (tap and directional swipe), acceleration (with accelerometer hardware events) and a gyroscope.
-* Flight1v2: This application provides an example of usage of a NUCLEO board (it was tested with NUCLEO-F401RE) with
-X-NUCLEO-IKS01A3, X-NUCLEO-IDB05A2 and X-NUCLEO-53L1A1 Expansion Boards. The application gathers data from the sensors mounted and then communicates
+* Flight1v2: This application provides an example of usage of a NUCLEO board (it was tested with a NUCLEO-F401RE and a NUCLEO-L476RG) with
+X-NUCLEO-IKS01A3, X-NUCLEO-IDB05A2, X-NUCLEO-BNRG2A1 and X-NUCLEO-53L1A1 Expansion Boards. The application gathers data from the sensors mounted and then communicates
 them via bluetooth to a suitable Android or iOS app (such as ST BLE Sensor). The data gathered include environmental data (temperature, pression, humidity), 
 distance, gesture recognition (tap and directional swipe), acceleration (with accelerometer hardware events), a gyroscope and a magnetometer. In addition, 9x sensor fusion functionality for accurate orientation detection is also available. Note that
 unlike the Flight1 application, this one makes use of the STM32duinoBLE API instead of SPBTLE-RF, and does not support X-NUCLEO-IKS01A2 boards. In addition, an up-to-date version of the STM32duinoBLE library is required, as this application uses some of the newest features.
